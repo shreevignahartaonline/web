@@ -32,7 +32,9 @@ import {
   Calendar,
   User,
   Share2,
-  Printer
+  Printer,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import { partyService, Party } from "@/services/party"
 import { SaleService, Sale } from "@/services/sale"
@@ -61,6 +63,10 @@ export default function Dashboard() {
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("")
   const [transactionTypeFilter, setTransactionTypeFilter] = useState("all")
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const transactionsPerPage = 10
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -189,7 +195,28 @@ export default function Dashboard() {
     }
 
     setFilteredTransactions(filtered)
+    setCurrentPage(1) // Reset to first page when filters change
   }, [allTransactions, searchTerm, transactionTypeFilter])
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage)
+  const startIndex = (currentPage - 1) * transactionsPerPage
+  const endIndex = startIndex + transactionsPerPage
+  const currentTransactions = filteredTransactions.slice(startIndex, endIndex)
+
+  // Calculate pagination window (show max 5 page numbers)
+  const maxVisiblePages = 5
+  const halfWindow = Math.floor(maxVisiblePages / 2)
+  
+  let startPage = Math.max(1, currentPage - halfWindow)
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+  
+  // Adjust start page if we're near the end
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
+  }
+  
+  const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
 
   // Filter parties based on search term
   useEffect(() => {
@@ -391,6 +418,11 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold tracking-tight">All Transactions</h1>
               <p className="text-muted-foreground">
                 View all sales, purchases, and payment transactions
+                {filteredTransactions.length > 0 && (
+                  <span className="ml-2 text-sm">
+                    (Showing {startIndex + 1}-{Math.min(endIndex, filteredTransactions.length)} of {filteredTransactions.length} transactions)
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -445,7 +477,7 @@ export default function Dashboard() {
           </div>
             ) : (
               <div className="space-y-4">
-                {filteredTransactions.map((transaction) => {
+                {currentTransactions.map((transaction) => {
                   const typeInfo = getTransactionTypeInfo(transaction.type)
                   const IconComponent = typeInfo.icon
                   
@@ -520,6 +552,45 @@ export default function Dashboard() {
                       </div>
                     )}
           </div>
+
+          {/* Pagination Controls */}
+          {filteredTransactions.length > transactionsPerPage && (
+            <div className="flex items-center justify-center mt-6 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Previous</span>
+                </Button>
+                <div className="flex items-center gap-1">
+                  {visiblePages.map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="hidden sm:inline mr-1">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Party Tab */}

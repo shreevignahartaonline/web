@@ -20,7 +20,9 @@ import {
   Calendar,
   User,
   Phone,
-  FileText
+  FileText,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import { PaymentService, Payment, PaymentCreateData, PaymentFilters } from "@/services/payment"
 import { partyService, Party } from "@/services/party"
@@ -47,6 +49,10 @@ export default function PaymentsPage() {
   const [selectedParty, setSelectedParty] = useState<Party | null>(null)
   const [showPartyDropdown, setShowPartyDropdown] = useState(false)
   const [filteredParties, setFilteredParties] = useState<Party[]>([])
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const paymentsPerPage = 10
 
   // Load payments and parties on component mount
   useEffect(() => {
@@ -87,10 +93,31 @@ export default function PaymentsPage() {
   // Handle search and filter changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      setCurrentPage(1) // Reset to first page when filters change
       loadPayments()
     }, 300)
     return () => clearTimeout(timeoutId)
   }, [searchTerm, paymentTypeFilter])
+
+  // Calculate pagination
+  const totalPages = Math.ceil(payments.length / paymentsPerPage)
+  const startIndex = (currentPage - 1) * paymentsPerPage
+  const endIndex = startIndex + paymentsPerPage
+  const currentPayments = payments.slice(startIndex, endIndex)
+
+  // Calculate pagination window (show max 5 page numbers)
+  const maxVisiblePages = 5
+  const halfWindow = Math.floor(maxVisiblePages / 2)
+  
+  let startPage = Math.max(1, currentPage - halfWindow)
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+  
+  // Adjust start page if we're near the end
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
+  }
+  
+  const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
 
   // Handle form submission for adding new payment
   const handleAddPayment = async () => {
@@ -474,7 +501,7 @@ export default function PaymentsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {payments.map((payment) => {
+              {currentPayments.map((payment) => {
                 return (
                   <div key={payment.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
                     {/* Desktop Layout */}
@@ -536,6 +563,45 @@ export default function PaymentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination Controls */}
+      {payments.length > paymentsPerPage && (
+        <div className="flex items-center justify-center mt-6 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Previous</span>
+            </button>
+            <div className="flex items-center gap-1">
+              {visiblePages.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 p-0 border rounded-lg transition-colors ${
+                    currentPage === page 
+                      ? 'bg-blue-600 text-white border-blue-600' 
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Edit Payment Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => {

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { PurchaseService, Purchase, PurchaseCreateData, PurchaseItem } from '../../services/purchase'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
-import { Edit, Trash2 } from 'lucide-react'
+import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface PurchaseFormData {
   partyName: string
@@ -30,6 +30,10 @@ const PurchasePage: React.FC = () => {
   const [itemSearchQuery, setItemSearchQuery] = useState('')
   const [filteredItems, setFilteredItems] = useState<Item[]>([])
   const [showItemSearchBar, setShowItemSearchBar] = useState(false)
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const purchasesPerPage = 10
   const [formData, setFormData] = useState<PurchaseFormData>({
     partyName: '',
     phoneNumber: '',
@@ -237,6 +241,26 @@ const PurchasePage: React.FC = () => {
     return formData.items.reduce((sum, item) => sum + item.total, 0)
   }
 
+  // Calculate pagination
+  const totalPages = Math.ceil(purchases.length / purchasesPerPage)
+  const startIndex = (currentPage - 1) * purchasesPerPage
+  const endIndex = startIndex + purchasesPerPage
+  const currentPurchases = purchases.slice(startIndex, endIndex)
+
+  // Calculate pagination window (show max 5 page numbers)
+  const maxVisiblePages = 5
+  const halfWindow = Math.floor(maxVisiblePages / 2)
+  
+  let startPage = Math.max(1, currentPage - halfWindow)
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+  
+  // Adjust start page if we're near the end
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
+  }
+  
+  const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
+
   // Helper function to generate next bill number
   const getNextBillNumber = () => {
     if (purchases.length === 0) return '1'
@@ -405,74 +429,169 @@ const PurchasePage: React.FC = () => {
       )}
 
 
-      {/* Purchases Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Bill No
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Party Name
-                </th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Items
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Amount
-                </th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {purchases.map((purchase) => (
-                <tr key={purchase.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {purchase.billNo}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {purchase.partyName}
-                  </td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {purchase.items.length} item(s)
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {PurchaseService.formatCurrency(purchase.totalAmount)}
-                  </td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {purchase.date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEditPurchase(purchase)}
-                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
-                        title="Edit Purchase"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePurchase(purchase.id!)}
-                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Delete Purchase"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+      {/* Purchase Cards */}
+      <div className="space-y-4">
+        {purchases.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No purchases found</h3>
+            <p className="text-gray-500">Start by creating your first purchase transaction.</p>
+          </div>
+        ) : (
+          currentPurchases.map((purchase) => (
+            <div key={purchase.id} className="border rounded-lg hover:bg-gray-50 transition-colors">
+              {/* Desktop Layout */}
+              <div className="hidden md:flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{purchase.partyName}</h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        BILL-{purchase.billNo}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        {purchase.items.length} item(s)
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {purchase.date}
+                      </span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right mr-4">
+                    <p className="text-lg font-semibold text-blue-600">
+                      {PurchaseService.formatCurrency(purchase.totalAmount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleEditPurchase(purchase)}
+                      className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
+                      title="Edit Purchase"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeletePurchase(purchase.id!)}
+                      className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                      title="Delete Purchase"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Layout */}
+              <div className="md:hidden p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                      <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-gray-900">{purchase.partyName}</h3>
+                      <p className="text-xs text-gray-500">BILL-{purchase.billNo}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-blue-600">
+                      {PurchaseService.formatCurrency(purchase.totalAmount)}
+                    </p>
+                    <p className="text-xs text-gray-500">{purchase.items.length} items</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {purchase.date}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleEditPurchase(purchase)}
+                      className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
+                      title="Edit Purchase"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeletePurchase(purchase.id!)}
+                      className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                      title="Delete Purchase"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
+
+      {/* Pagination Controls */}
+      {purchases.length > purchasesPerPage && (
+        <div className="flex items-center justify-center mt-6 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Previous</span>
+            </button>
+            <div className="flex items-center gap-1">
+              {visiblePages.map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 p-0 border rounded-lg transition-colors ${
+                    currentPage === page 
+                      ? 'bg-blue-600 text-white border-blue-600' 
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Purchase Form Modal */}
       {showForm && (
