@@ -116,7 +116,20 @@ const SalesPage: React.FC = () => {
 
       const response = await SaleService.createSale(saleData)
       setSales(prev => [response.data, ...prev])
-      setSuccess('Sale created successfully! PDF will open in a new tab.')
+      
+      // Send PDF via WhatsApp
+      try {
+        const whatsappResult = await SaleService.generateAndSendPDFViaWhatsApp(response.data)
+        if (whatsappResult) {
+          setSuccess('PDF Generated and Sent Successfully!')
+        } else {
+          setSuccess('Sale created successfully! PDF will open in a new tab.')
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp send error:', whatsappError)
+        setSuccess('Sale created successfully! PDF will open in a new tab.')
+      }
+      
       resetForm()
       setShowForm(false)
     } catch (err) {

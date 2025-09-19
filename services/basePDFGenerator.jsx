@@ -1,6 +1,7 @@
 import { pdf, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { companyService } from './company'
 import { partyService } from './party'
+import { UploadService } from './upload'
 import React from 'react'
 
 // Define styles for PDF documents
@@ -829,6 +830,203 @@ export class BasePDFGenerator {
       return true
     }
     return false
+  }
+
+  // ===== NEW UPLOAD AND WHATSAPP METHODS =====
+
+  /**
+   * Generate PDF and upload to backend
+   * @param documentData - Document data
+   * @param documentType - Type of document
+   * @returns Promise<UploadResult>
+   */
+  static async generateAndUploadPDF(documentData, documentType) {
+    try {
+      // Generate PDF based on document type
+      let pdfResult
+      switch (documentType) {
+        case 'invoice':
+          pdfResult = await this.generateInvoicePDF(documentData)
+          break
+        case 'purchase-bill':
+          pdfResult = await this.generatePurchaseBillPDF(documentData)
+          break
+        case 'payment-receipt':
+          pdfResult = await this.generatePaymentInPDF(documentData)
+          break
+        case 'payment-voucher':
+          pdfResult = await this.generatePaymentOutPDF(documentData)
+          break
+        default:
+          throw new Error(`Unsupported document type: ${documentType}`)
+      }
+
+      if (!pdfResult.success) {
+        return {
+          success: false,
+          error: pdfResult.error || 'Failed to generate PDF'
+        }
+      }
+
+      // Upload PDF to backend
+      const uploadResult = await UploadService.uploadPDF(pdfResult.pdfBlob, pdfResult.fileName)
+      return uploadResult
+    } catch (error) {
+      console.error('Error in generateAndUploadPDF:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to generate and upload PDF'
+      }
+    }
+  }
+
+  /**
+   * Generate PDF, upload, and send via WhatsApp
+   * @param documentData - Document data
+   * @param documentType - Type of document
+   * @param partyPhoneNumber - Party's phone number
+   * @param customMessage - Optional custom message
+   * @returns Promise<WhatsAppResult>
+   */
+  static async generateUploadAndSendPDF(documentData, documentType, partyPhoneNumber, customMessage = '') {
+    try {
+      // Generate PDF based on document type
+      let pdfResult
+      switch (documentType) {
+        case 'invoice':
+          pdfResult = await this.generateInvoicePDF(documentData)
+          break
+        case 'purchase-bill':
+          pdfResult = await this.generatePurchaseBillPDF(documentData)
+          break
+        case 'payment-receipt':
+          pdfResult = await this.generatePaymentInPDF(documentData)
+          break
+        case 'payment-voucher':
+          pdfResult = await this.generatePaymentOutPDF(documentData)
+          break
+        default:
+          throw new Error(`Unsupported document type: ${documentType}`)
+      }
+
+      if (!pdfResult.success) {
+        return {
+          success: false,
+          error: pdfResult.error || 'Failed to generate PDF'
+        }
+      }
+
+      // Prepare WhatsApp data
+      const whatsappData = {
+        phoneNumber: partyPhoneNumber,
+        documentUrl: '', // Will be set after upload
+        fileName: pdfResult.fileName,
+        message: customMessage || UploadService.generateDefaultMessage(documentType, pdfResult.fileName),
+        documentType: documentType,
+        ...this.extractDocumentSpecificData(documentData, documentType)
+      }
+
+      // Upload and send via WhatsApp
+      const result = await UploadService.uploadAndSendPDF(pdfResult.pdfBlob, pdfResult.fileName, whatsappData)
+      return result
+    } catch (error) {
+      console.error('Error in generateUploadAndSendPDF:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to generate, upload, and send PDF'
+      }
+    }
+  }
+
+  /**
+   * Extract document-specific data for WhatsApp
+   * @param documentData - Document data
+   * @param documentType - Type of document
+   * @returns Object with document-specific fields
+   */
+  static extractDocumentSpecificData(documentData, documentType) {
+    switch (documentType) {
+      case 'invoice':
+        return {
+          invoiceNo: documentData.invoiceNo,
+          customerName: documentData.partyName,
+          amount: documentData.totalAmount
+        }
+      case 'purchase-bill':
+        return {
+          billNo: documentData.billNo,
+          supplierName: documentData.partyName,
+          amount: documentData.totalAmount
+        }
+      case 'payment-receipt':
+        return {
+          receiptNo: documentData.paymentNo,
+          customerName: documentData.partyName,
+          amount: documentData.received
+        }
+      case 'payment-voucher':
+        return {
+          voucherNo: documentData.paymentNo,
+          supplierName: documentData.partyName,
+          amount: documentData.paid
+        }
+      default:
+        return {}
+    }
+  }
+
+  /**
+   * Upload existing PDF blob and send via WhatsApp
+   * @param pdfBlob - PDF blob
+   * @param fileName - File name
+   * @param whatsappData - WhatsApp send data
+   * @returns Promise<WhatsAppResult>
+   */
+  static async uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData) {
+    try {
+      const result = await UploadService.uploadAndSendPDF(pdfBlob, fileName, whatsappData)
+      return result
+    } catch (error) {
+      console.error('Error in uploadAndSendExistingPDF:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to upload and send existing PDF'
+      }
+    }
+  }
+
+  /**
+   * Check upload service status
+   * @returns Promise<UploadStatus>
+   */
+  static async getUploadServiceStatus() {
+    try {
+      const status = await UploadService.getUploadStatus()
+      return status
+    } catch (error) {
+      console.error('Error checking upload service status:', error)
+      return {
+        success: false,
+        message: error.message || 'Failed to check upload service status'
+      }
+    }
+  }
+
+  /**
+   * Test WhatsApp connection
+   * @returns Promise<TestResult>
+   */
+  static async testWhatsAppConnection() {
+    try {
+      const result = await UploadService.testWhatsAppConnection()
+      return result
+    } catch (error) {
+      console.error('Error testing WhatsApp connection:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to test WhatsApp connection'
+      }
+    }
   }
 }
 

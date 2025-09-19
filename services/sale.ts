@@ -315,6 +315,53 @@ export class SaleService {
     }
   }
 
+  // Generate PDF and send via WhatsApp
+  static async generateAndSendPDFViaWhatsApp(sale: Sale): Promise<boolean> {
+    try {
+      const invoiceData = {
+        id: sale.id || '',
+        invoiceNo: sale.invoiceNo,
+        partyName: sale.partyName,
+        phoneNumber: sale.phoneNumber,
+        items: sale.items,
+        totalAmount: sale.totalAmount,
+        date: sale.date
+      }
+      
+      const result = await BasePDFGenerator.generateUploadAndSendPDF(
+        invoiceData, 
+        'invoice', 
+        sale.phoneNumber
+      )
+      
+      return result.success
+    } catch (error) {
+      console.error('Error generating and sending PDF via WhatsApp:', error)
+      return false
+    }
+  }
+
+  // Upload existing PDF and send via WhatsApp
+  static async uploadAndSendExistingPDF(pdfBlob: Blob, fileName: string, sale: Sale): Promise<boolean> {
+    try {
+      const whatsappData = {
+        phoneNumber: sale.phoneNumber,
+        documentUrl: '', // Will be set after upload
+        fileName: fileName,
+        documentType: 'invoice' as const,
+        invoiceNo: sale.invoiceNo,
+        customerName: sale.partyName,
+        amount: sale.totalAmount
+      }
+      
+      const result = await BasePDFGenerator.uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData)
+      return result.success
+    } catch (error) {
+      console.error('Error uploading and sending existing PDF:', error)
+      return false
+    }
+  }
+
   // Validate sale data
   static validateSaleData(saleData: SaleCreateData): { isValid: boolean; errors: string[] } {
     const errors: string[] = []

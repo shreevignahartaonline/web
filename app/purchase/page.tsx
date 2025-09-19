@@ -112,7 +112,20 @@ const PurchasePage: React.FC = () => {
 
       const response = await PurchaseService.createPurchase(purchaseData)
       setPurchases(prev => [response.data, ...prev])
-      setSuccess('Purchase created successfully! PDF will open in a new tab.')
+      
+      // Send PDF via WhatsApp
+      try {
+        const whatsappResult = await PurchaseService.generateAndSendPDFViaWhatsApp(response.data)
+        if (whatsappResult) {
+          setSuccess('PDF Generated and Sent Successfully!')
+        } else {
+          setSuccess('Purchase created successfully! PDF will open in a new tab.')
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp send error:', whatsappError)
+        setSuccess('Purchase created successfully! PDF will open in a new tab.')
+      }
+      
       resetForm()
       setShowForm(false)
     } catch (err) {

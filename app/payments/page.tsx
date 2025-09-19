@@ -102,8 +102,21 @@ export default function PaymentsPage() {
       }
 
       setIsSubmitting(true)
-      await PaymentService.createPayment(formData)
-      toast.success("Payment created successfully! PDF will open in a new tab.")
+      const response = await PaymentService.createPayment(formData)
+      
+      // Send PDF via WhatsApp
+      try {
+        const whatsappResult = await PaymentService.generateAndSendPDFViaWhatsApp(response.data)
+        if (whatsappResult) {
+          toast.success("PDF Generated and Sent Successfully!")
+        } else {
+          toast.success("Payment created successfully! PDF will open in a new tab.")
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp send error:', whatsappError)
+        toast.success("Payment created successfully! PDF will open in a new tab.")
+      }
+      
       setIsAddDialogOpen(false)
       resetForm()
       loadPayments()

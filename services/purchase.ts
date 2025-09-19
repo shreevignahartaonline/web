@@ -356,6 +356,53 @@ export class PurchaseService {
     }
   }
 
+  // Generate PDF and send via WhatsApp
+  static async generateAndSendPDFViaWhatsApp(purchase: Purchase): Promise<boolean> {
+    try {
+      const billData = {
+        id: purchase.id || '',
+        billNo: purchase.billNo,
+        partyName: purchase.partyName,
+        phoneNumber: purchase.phoneNumber,
+        items: purchase.items,
+        totalAmount: purchase.totalAmount,
+        date: purchase.date
+      }
+      
+      const result = await BasePDFGenerator.generateUploadAndSendPDF(
+        billData, 
+        'purchase-bill', 
+        purchase.phoneNumber
+      )
+      
+      return result.success
+    } catch (error) {
+      console.error('Error generating and sending PDF via WhatsApp:', error)
+      return false
+    }
+  }
+
+  // Upload existing PDF and send via WhatsApp
+  static async uploadAndSendExistingPDF(pdfBlob: Blob, fileName: string, purchase: Purchase): Promise<boolean> {
+    try {
+      const whatsappData = {
+        phoneNumber: purchase.phoneNumber,
+        documentUrl: '', // Will be set after upload
+        fileName: fileName,
+        documentType: 'purchase-bill' as const,
+        billNo: purchase.billNo,
+        supplierName: purchase.partyName,
+        amount: purchase.totalAmount
+      }
+      
+      const result = await BasePDFGenerator.uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData)
+      return result.success
+    } catch (error) {
+      console.error('Error uploading and sending existing PDF:', error)
+      return false
+    }
+  }
+
   // Validate purchase data
   static validatePurchaseData(data: PurchaseCreateData): string[] {
     const errors: string[] = []

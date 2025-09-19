@@ -409,6 +409,92 @@ export class PaymentService {
     }
   }
 
+  // Generate PDF and send via WhatsApp
+  static async generateAndSendPDFViaWhatsApp(payment: Payment): Promise<boolean> {
+    try {
+      if (payment.type === 'payment-in') {
+        const paymentInData = {
+          id: payment.id || '',
+          paymentNo: payment.paymentNo,
+          partyName: payment.partyName,
+          phoneNumber: payment.phoneNumber,
+          received: payment.amount,
+          totalAmount: payment.totalAmount,
+          date: payment.date
+        }
+        
+        const result = await BasePDFGenerator.generateUploadAndSendPDF(
+          paymentInData, 
+          'payment-receipt', 
+          payment.phoneNumber
+        )
+        
+        return result.success
+      } else if (payment.type === 'payment-out') {
+        const paymentOutData = {
+          id: payment.id || '',
+          paymentNo: payment.paymentNo,
+          partyName: payment.partyName,
+          phoneNumber: payment.phoneNumber,
+          paid: payment.amount,
+          totalAmount: payment.totalAmount,
+          date: payment.date
+        }
+        
+        const result = await BasePDFGenerator.generateUploadAndSendPDF(
+          paymentOutData, 
+          'payment-voucher', 
+          payment.phoneNumber
+        )
+        
+        return result.success
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error generating and sending PDF via WhatsApp:', error)
+      return false
+    }
+  }
+
+  // Upload existing PDF and send via WhatsApp
+  static async uploadAndSendExistingPDF(pdfBlob: Blob, fileName: string, payment: Payment): Promise<boolean> {
+    try {
+      if (payment.type === 'payment-in') {
+        const whatsappData = {
+          phoneNumber: payment.phoneNumber,
+          documentUrl: '', // Will be set after upload
+          fileName: fileName,
+          documentType: 'payment-receipt' as const,
+          receiptNo: payment.paymentNo,
+          customerName: payment.partyName,
+          amount: payment.amount
+        }
+        
+        const result = await BasePDFGenerator.uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData)
+        return result.success
+      } else if (payment.type === 'payment-out') {
+        const whatsappData = {
+          phoneNumber: payment.phoneNumber,
+          documentUrl: '', // Will be set after upload
+          fileName: fileName,
+          documentType: 'payment-voucher' as const,
+          voucherNo: payment.paymentNo,
+          supplierName: payment.partyName,
+          amount: payment.amount
+        }
+        
+        const result = await BasePDFGenerator.uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData)
+        return result.success
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error uploading and sending existing PDF:', error)
+      return false
+    }
+  }
+
   // Get payment type display text
   static getPaymentTypeText(type: string): string {
     return type === 'payment-in' ? 'Payment In' : 'Payment Out'
