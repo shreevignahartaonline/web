@@ -103,7 +103,7 @@ export default function PaymentsPage() {
 
       setIsSubmitting(true)
       await PaymentService.createPayment(formData)
-      toast.success("Payment created successfully")
+      toast.success("Payment created successfully! PDF will open in a new tab.")
       setIsAddDialogOpen(false)
       resetForm()
       loadPayments()

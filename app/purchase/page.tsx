@@ -112,7 +112,7 @@ const PurchasePage: React.FC = () => {
 
       const response = await PurchaseService.createPurchase(purchaseData)
       setPurchases(prev => [response.data, ...prev])
-      setSuccess('Purchase created successfully!')
+      setSuccess('Purchase created successfully! PDF will open in a new tab.')
       resetForm()
       setShowForm(false)
     } catch (err) {

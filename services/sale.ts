@@ -1,4 +1,6 @@
 // Sale Model Interface based on backend documentation
+import BasePDFGenerator from './basePDFGenerator'
+
 export interface SaleItem {
   id: string
   itemName: string
@@ -134,7 +136,37 @@ export class SaleService {
         body: JSON.stringify(saleData),
       })
       
-      return handleResponse(response)
+      const result = await handleResponse(response)
+      
+      // Generate and open PDF after successful creation
+      if (result.success && result.data) {
+        try {
+          console.log('Creating invoice data for PDF generation...')
+          console.log('Sale data:', result.data)
+          console.log('Items from sale:', result.data.items)
+          
+          const invoiceData = {
+            id: result.data.id || '',
+            invoiceNo: result.data.invoiceNo,
+            partyName: result.data.partyName,
+            phoneNumber: result.data.phoneNumber,
+            items: result.data.items,
+            totalAmount: result.data.totalAmount,
+            date: result.data.date
+          }
+          
+          console.log('Invoice data for PDF:', invoiceData)
+          
+          // Generate and open PDF in new tab
+          await BasePDFGenerator.generateAndOpenInvoice(invoiceData)
+          console.log('Invoice PDF generated and opened successfully!')
+        } catch (pdfError) {
+          console.error('Error generating invoice PDF:', pdfError)
+          // Don't throw error - PDF generation failure shouldn't break the sale creation
+        }
+      }
+      
+      return result
     } catch (error) {
       console.error('Error creating sale:', error)
       throw error
@@ -261,6 +293,26 @@ export class SaleService {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     }).format(amount)
+  }
+
+  // Generate PDF for existing sale
+  static async generatePDFForSale(sale: Sale): Promise<boolean> {
+    try {
+      const invoiceData = {
+        id: sale.id || '',
+        invoiceNo: sale.invoiceNo,
+        partyName: sale.partyName,
+        phoneNumber: sale.phoneNumber,
+        items: sale.items,
+        totalAmount: sale.totalAmount,
+        date: sale.date
+      }
+      
+      return await BasePDFGenerator.generateAndOpenInvoice(invoiceData)
+    } catch (error) {
+      console.error('Error generating PDF for sale:', error)
+      return false
+    }
   }
 
   // Validate sale data

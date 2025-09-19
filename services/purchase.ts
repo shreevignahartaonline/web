@@ -1,4 +1,6 @@
 // Purchase Model Interface based on backend documentation
+import BasePDFGenerator from './basePDFGenerator'
+
 export interface PurchaseItem {
   id: string
   itemName: string
@@ -195,7 +197,37 @@ export class PurchaseService {
         body: JSON.stringify(formattedData),
       })
       
-      return handleResponse(response)
+      const result = await handleResponse(response)
+      
+      // Generate and open PDF after successful creation
+      if (result.success && result.data) {
+        try {
+          console.log('Creating purchase bill data for PDF generation...')
+          console.log('Purchase data:', result.data)
+          console.log('Items from purchase:', result.data.items)
+          
+          const billData = {
+            id: result.data.id || '',
+            billNo: result.data.billNo,
+            partyName: result.data.partyName,
+            phoneNumber: result.data.phoneNumber,
+            items: result.data.items,
+            totalAmount: result.data.totalAmount,
+            date: result.data.date
+          }
+          
+          console.log('Purchase bill data for PDF:', billData)
+          
+          // Generate and open PDF in new tab
+          await BasePDFGenerator.generateAndOpenPurchaseBill(billData)
+          console.log('Purchase bill PDF generated and opened successfully!')
+        } catch (pdfError) {
+          console.error('Error generating purchase bill PDF:', pdfError)
+          // Don't throw error - PDF generation failure shouldn't break the purchase creation
+        }
+      }
+      
+      return result
     } catch (error) {
       console.error('Error creating purchase:', error)
       throw error
@@ -301,6 +333,26 @@ export class PurchaseService {
     } catch (error) {
       console.error('Error generating bill number:', error)
       return '1'
+    }
+  }
+
+  // Generate PDF for existing purchase
+  static async generatePDFForPurchase(purchase: Purchase): Promise<boolean> {
+    try {
+      const billData = {
+        id: purchase.id || '',
+        billNo: purchase.billNo,
+        partyName: purchase.partyName,
+        phoneNumber: purchase.phoneNumber,
+        items: purchase.items,
+        totalAmount: purchase.totalAmount,
+        date: purchase.date
+      }
+      
+      return await BasePDFGenerator.generateAndOpenPurchaseBill(billData)
+    } catch (error) {
+      console.error('Error generating PDF for purchase:', error)
+      return false
     }
   }
 

@@ -116,7 +116,7 @@ const SalesPage: React.FC = () => {
 
       const response = await SaleService.createSale(saleData)
       setSales(prev => [response.data, ...prev])
-      setSuccess('Sale created successfully!')
+      setSuccess('Sale created successfully! PDF will open in a new tab.')
       resetForm()
       setShowForm(false)
     } catch (err) {

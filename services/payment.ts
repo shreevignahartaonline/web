@@ -1,4 +1,6 @@
 // Payment Model Interface based on backend documentation
+import BasePDFGenerator from './basePDFGenerator'
+
 export interface Payment {
   id?: string
   paymentNo: string
@@ -138,7 +140,47 @@ export class PaymentService {
         body: JSON.stringify(formattedData),
       })
       
-      return handleResponse(response)
+      const result = await handleResponse(response)
+      
+      // Generate and open PDF after successful creation
+      if (result.success && result.data) {
+        try {
+          if (result.data.type === 'payment-in') {
+            const paymentInData = {
+              id: result.data.id || '',
+              paymentNo: result.data.paymentNo,
+              partyName: result.data.partyName,
+              phoneNumber: result.data.phoneNumber,
+              received: result.data.amount,
+              totalAmount: result.data.totalAmount,
+              date: result.data.date
+            }
+            
+            // Generate and open payment receipt PDF in new tab
+            await BasePDFGenerator.generateAndOpenPaymentReceipt(paymentInData)
+            console.log('Payment receipt PDF generated and opened successfully!')
+          } else if (result.data.type === 'payment-out') {
+            const paymentOutData = {
+              id: result.data.id || '',
+              paymentNo: result.data.paymentNo,
+              partyName: result.data.partyName,
+              phoneNumber: result.data.phoneNumber,
+              paid: result.data.amount,
+              totalAmount: result.data.totalAmount,
+              date: result.data.date
+            }
+            
+            // Generate and open payment voucher PDF in new tab
+            await BasePDFGenerator.generateAndOpenPaymentVoucher(paymentOutData)
+            console.log('Payment voucher PDF generated and opened successfully!')
+          }
+        } catch (pdfError) {
+          console.error('Error generating payment PDF:', pdfError)
+          // Don't throw error - PDF generation failure shouldn't break the payment creation
+        }
+      }
+      
+      return result
     } catch (error) {
       console.error('Error creating payment:', error)
       throw error
@@ -328,6 +370,42 @@ export class PaymentService {
     return {
       isValid: errors.length === 0,
       errors
+    }
+  }
+
+  // Generate PDF for existing payment
+  static async generatePDFForPayment(payment: Payment): Promise<boolean> {
+    try {
+      if (payment.type === 'payment-in') {
+        const paymentInData = {
+          id: payment.id || '',
+          paymentNo: payment.paymentNo,
+          partyName: payment.partyName,
+          phoneNumber: payment.phoneNumber,
+          received: payment.amount,
+          totalAmount: payment.totalAmount,
+          date: payment.date
+        }
+        
+        return await BasePDFGenerator.generateAndOpenPaymentReceipt(paymentInData)
+      } else if (payment.type === 'payment-out') {
+        const paymentOutData = {
+          id: payment.id || '',
+          paymentNo: payment.paymentNo,
+          partyName: payment.partyName,
+          phoneNumber: payment.phoneNumber,
+          paid: payment.amount,
+          totalAmount: payment.totalAmount,
+          date: payment.date
+        }
+        
+        return await BasePDFGenerator.generateAndOpenPaymentVoucher(paymentOutData)
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error generating PDF for payment:', error)
+      return false
     }
   }
 
