@@ -220,7 +220,7 @@ export class PurchaseService {
           
           console.log('Purchase bill data for PDF:', billData)
           
-          // Generate and open PDF in new tab
+          // Generate and download PDF directly (works on mobile and desktop)
           await BasePDFGenerator.generateAndOpenPurchaseBill(billData)
           console.log('Purchase bill PDF generated and opened successfully!')
         } catch (pdfError) {
@@ -373,8 +373,8 @@ export class PurchaseService {
     }
   }
 
-  // Generate PDF and send via WhatsApp
-  static async generateAndSendPDFViaWhatsApp(purchase: Purchase): Promise<{ success: boolean; shouldOpenPDF?: boolean; pdfBlob?: Blob; fileName?: string }> {
+  // Generate PDF and send via WhatsApp (simplified - no PDF opening)
+  static async generateAndSendPDFViaWhatsApp(purchase: Purchase): Promise<boolean> {
     try {
       const billData = {
         id: purchase.id || '',
@@ -386,53 +386,16 @@ export class PurchaseService {
         date: purchase.date
       }
       
-      const result = await BasePDFGenerator.generateUploadAndSendPDF(
+      const result = await BasePDFGenerator.generateAndSendPDFOnly(
         billData, 
         'purchase-bill', 
         purchase.phoneNumber
       )
       
-      if (result.success) {
-        return { success: true }
-      } else {
-        // WhatsApp sending failed, generate PDF for fallback opening
-        const pdfResult = await BasePDFGenerator.generatePurchaseBillPDF(billData)
-        if (pdfResult.success) {
-          return { 
-            success: false, 
-            shouldOpenPDF: true, 
-            pdfBlob: pdfResult.pdfBlob, 
-            fileName: pdfResult.fileName 
-          }
-        }
-        return { success: false }
-      }
+      return result.success
     } catch (error) {
       console.error('Error generating and sending PDF via WhatsApp:', error)
-      // Try to generate PDF for fallback opening
-      try {
-        const billData = {
-          id: purchase.id || '',
-          billNo: purchase.billNo,
-          partyName: purchase.partyName,
-          phoneNumber: purchase.phoneNumber,
-          items: purchase.items,
-          totalAmount: purchase.totalAmount,
-          date: purchase.date
-        }
-        const pdfResult = await BasePDFGenerator.generatePurchaseBillPDF(billData)
-        if (pdfResult.success) {
-          return { 
-            success: false, 
-            shouldOpenPDF: true, 
-            pdfBlob: pdfResult.pdfBlob, 
-            fileName: pdfResult.fileName 
-          }
-        }
-      } catch (pdfError) {
-        console.error('Error generating fallback PDF:', pdfError)
-      }
-      return { success: false }
+      return false
     }
   }
 

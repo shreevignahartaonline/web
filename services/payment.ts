@@ -156,7 +156,7 @@ export class PaymentService {
               date: result.data.date
             }
             
-            // Generate and open payment receipt PDF in new tab
+            // Generate and download payment receipt PDF directly (works on mobile and desktop)
             await BasePDFGenerator.generateAndOpenPaymentReceipt(paymentInData)
             console.log('Payment receipt PDF generated and opened successfully!')
           } else if (result.data.type === 'payment-out') {
@@ -170,7 +170,7 @@ export class PaymentService {
               date: result.data.date
             }
             
-            // Generate and open payment voucher PDF in new tab
+            // Generate and download payment voucher PDF directly (works on mobile and desktop)
             await BasePDFGenerator.generateAndOpenPaymentVoucher(paymentOutData)
             console.log('Payment voucher PDF generated and opened successfully!')
           }
@@ -409,8 +409,8 @@ export class PaymentService {
     }
   }
 
-  // Generate PDF and send via WhatsApp
-  static async generateAndSendPDFViaWhatsApp(payment: Payment): Promise<{ success: boolean; shouldOpenPDF?: boolean; pdfBlob?: Blob; fileName?: string }> {
+  // Generate PDF and send via WhatsApp (simplified - no PDF opening)
+  static async generateAndSendPDFViaWhatsApp(payment: Payment): Promise<boolean> {
     try {
       if (payment.type === 'payment-in') {
         const paymentInData = {
@@ -423,27 +423,13 @@ export class PaymentService {
           date: payment.date
         }
         
-        const result = await BasePDFGenerator.generateUploadAndSendPDF(
+        const result = await BasePDFGenerator.generateAndSendPDFOnly(
           paymentInData, 
           'payment-receipt', 
           payment.phoneNumber
         )
         
-        if (result.success) {
-          return { success: true }
-        } else {
-          // WhatsApp sending failed, generate PDF for fallback opening
-          const pdfResult = await BasePDFGenerator.generatePaymentInPDF(paymentInData)
-          if (pdfResult.success) {
-            return { 
-              success: false, 
-              shouldOpenPDF: true, 
-              pdfBlob: pdfResult.pdfBlob, 
-              fileName: pdfResult.fileName 
-            }
-          }
-          return { success: false }
-        }
+        return result.success
       } else if (payment.type === 'payment-out') {
         const paymentOutData = {
           id: payment.id || '',
@@ -455,77 +441,19 @@ export class PaymentService {
           date: payment.date
         }
         
-        const result = await BasePDFGenerator.generateUploadAndSendPDF(
+        const result = await BasePDFGenerator.generateAndSendPDFOnly(
           paymentOutData, 
           'payment-voucher', 
           payment.phoneNumber
         )
         
-        if (result.success) {
-          return { success: true }
-        } else {
-          // WhatsApp sending failed, generate PDF for fallback opening
-          const pdfResult = await BasePDFGenerator.generatePaymentOutPDF(paymentOutData)
-          if (pdfResult.success) {
-            return { 
-              success: false, 
-              shouldOpenPDF: true, 
-              pdfBlob: pdfResult.pdfBlob, 
-              fileName: pdfResult.fileName 
-            }
-          }
-          return { success: false }
-        }
+        return result.success
       }
       
-      return { success: false }
+      return false
     } catch (error) {
       console.error('Error generating and sending PDF via WhatsApp:', error)
-      // Try to generate PDF for fallback opening
-      try {
-        if (payment.type === 'payment-in') {
-          const paymentInData = {
-            id: payment.id || '',
-            paymentNo: payment.paymentNo,
-            partyName: payment.partyName,
-            phoneNumber: payment.phoneNumber,
-            received: payment.amount,
-            totalAmount: payment.totalAmount,
-            date: payment.date
-          }
-          const pdfResult = await BasePDFGenerator.generatePaymentInPDF(paymentInData)
-          if (pdfResult.success) {
-            return { 
-              success: false, 
-              shouldOpenPDF: true, 
-              pdfBlob: pdfResult.pdfBlob, 
-              fileName: pdfResult.fileName 
-            }
-          }
-        } else if (payment.type === 'payment-out') {
-          const paymentOutData = {
-            id: payment.id || '',
-            paymentNo: payment.paymentNo,
-            partyName: payment.partyName,
-            phoneNumber: payment.phoneNumber,
-            paid: payment.amount,
-            totalAmount: payment.totalAmount,
-            date: payment.date
-          }
-          const pdfResult = await BasePDFGenerator.generatePaymentOutPDF(paymentOutData)
-          if (pdfResult.success) {
-            return { 
-              success: false, 
-              shouldOpenPDF: true, 
-              pdfBlob: pdfResult.pdfBlob, 
-              fileName: pdfResult.fileName 
-            }
-          }
-        }
-      } catch (pdfError) {
-        console.error('Error generating fallback PDF:', pdfError)
-      }
-      return { success: false }
+      return false
     }
   }
 

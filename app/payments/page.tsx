@@ -135,13 +135,8 @@ export default function PaymentsPage() {
       // Send PDF via WhatsApp
       try {
         const whatsappResult = await PaymentService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult.success) {
+        if (whatsappResult) {
           toast.success("PDF Generated and Sent Successfully!")
-        } else if (whatsappResult.shouldOpenPDF && whatsappResult.pdfBlob && whatsappResult.fileName) {
-          // WhatsApp sending failed, open PDF as fallback
-          const delay = BasePDFGenerator.isMobileDevice() ? 2000 : 0 // 2 second delay for mobile
-          await BasePDFGenerator.openPDFSafely(whatsappResult.pdfBlob, whatsappResult.fileName, delay)
-          toast.success("Payment created successfully! PDF opened.")
         } else {
           toast.success("Payment created successfully!")
         }

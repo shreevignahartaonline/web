@@ -741,98 +741,80 @@ export class BasePDFGenerator {
     return hasMobileKeyword || (isSmallScreen && hasTouch)
   }
 
-  // Open PDF in new tab helper method with mobile support
-  static openPDFInNewTab(pdfUrl, fileName = 'document.pdf') {
+  // Download PDF directly (works on all devices - mobile and desktop)
+  static downloadPDFDirectly(pdfUrl, fileName = 'document.pdf') {
     try {
-      console.log('Opening PDF in new tab:', pdfUrl)
+      console.log('Downloading PDF:', pdfUrl)
       
-      if (this.isMobileDevice()) {
-        // For mobile devices, download instead of opening in new tab
-        // This prevents tab navigation issues
-        const link = document.createElement('a')
-        link.href = pdfUrl
-        link.download = fileName
-        link.style.display = 'none'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        console.log('PDF downloaded for mobile device')
-      } else {
-        // For desktop, open in new tab as usual
-        const newWindow = window.open(pdfUrl, '_blank')
-        if (!newWindow) {
-          console.error('Failed to open new window - popup blocked?')
-          // Fallback: try to download instead
-          const link = document.createElement('a')
-          link.href = pdfUrl
-          link.download = fileName
-          link.style.display = 'none'
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-        } else {
-          console.log('PDF opened successfully in new tab')
-        }
-      }
+      // Always download the PDF directly - works on mobile and desktop
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = fileName
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      console.log('PDF downloaded successfully')
+      
     } catch (error) {
-      console.error('Error opening PDF in new tab:', error)
+      console.error('Error downloading PDF:', error)
     }
   }
 
-  // Safely open PDF with delay for mobile devices
-  static async openPDFSafely(pdfBlob, fileName, delay = 0) {
-    return new Promise((resolve) => {
-      const openPDF = () => {
-        try {
-          const pdfUrl = URL.createObjectURL(pdfBlob)
-          
-          if (this.isMobileDevice()) {
-            // For mobile devices, use download approach
-            const link = document.createElement('a')
-            link.href = pdfUrl
-            link.download = fileName
-            link.style.display = 'none'
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            
-            // Clean up the blob URL after a short delay
-            setTimeout(() => {
-              URL.revokeObjectURL(pdfUrl)
-            }, 1000)
-          } else {
-            // For desktop, open in new tab as usual
-            const newWindow = window.open(pdfUrl, '_blank')
-            if (!newWindow) {
-              // Fallback to download if popup is blocked
-              const link = document.createElement('a')
-              link.href = pdfUrl
-              link.download = fileName
-              link.style.display = 'none'
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-            }
-            
-            // Clean up the blob URL after a short delay
-            setTimeout(() => {
-              URL.revokeObjectURL(pdfUrl)
-            }, 1000)
-          }
-          
-          resolve()
-        } catch (error) {
-          console.error('Error opening PDF:', error)
-          resolve()
+  // Legacy method name for backward compatibility - now just downloads
+  static openPDFInNewTab(pdfUrl, fileName = 'document.pdf') {
+    return this.downloadPDFDirectly(pdfUrl, fileName)
+  }
+
+  // Simplified method: Generate PDF and send via WhatsApp only (no opening)
+  static async generateAndSendPDFOnly(documentData, documentType, partyPhoneNumber, customMessage = '') {
+    try {
+      // Generate PDF based on document type
+      let pdfResult
+      switch (documentType) {
+        case 'invoice':
+          pdfResult = await this.generateInvoicePDF(documentData)
+          break
+        case 'purchase-bill':
+          pdfResult = await this.generatePurchaseBillPDF(documentData)
+          break
+        case 'payment-receipt':
+          pdfResult = await this.generatePaymentInPDF(documentData)
+          break
+        case 'payment-voucher':
+          pdfResult = await this.generatePaymentOutPDF(documentData)
+          break
+        default:
+          throw new Error(`Unsupported document type: ${documentType}`)
+      }
+
+      if (!pdfResult.success) {
+        return {
+          success: false,
+          error: pdfResult.error || 'Failed to generate PDF'
         }
       }
-      
-      if (delay > 0) {
-        setTimeout(openPDF, delay)
-      } else {
-        openPDF()
+
+      // Prepare WhatsApp data
+      const whatsappData = {
+        phoneNumber: partyPhoneNumber,
+        documentUrl: '', // Will be set after upload
+        fileName: pdfResult.fileName,
+        message: customMessage || UploadService.generateDefaultMessage(documentType, pdfResult.fileName),
+        documentType: documentType,
+        ...this.extractDocumentSpecificData(documentData, documentType)
       }
-    })
+
+      // Upload and send via WhatsApp
+      const result = await UploadService.uploadAndSendPDF(pdfResult.pdfBlob, pdfResult.fileName, whatsappData)
+      return result
+    } catch (error) {
+      console.error('Error in generateAndSendPDFOnly:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to generate and send PDF'
+      }
+    }
   }
 
   // Convenience methods for generating and downloading
@@ -872,15 +854,14 @@ export class BasePDFGenerator {
     return false
   }
 
-  // Convenience methods for generating and opening in new tab
+  // Convenience methods for generating and downloading PDFs (works on mobile and desktop)
   static async generateAndOpenInvoice(invoice) {
     const result = await this.generateInvoicePDF(invoice)
     if (result.success) {
       if (result.pdfUrl) {
-        this.openPDFInNewTab(result.pdfUrl)
+        this.downloadPDFDirectly(result.pdfUrl, `Invoice_${invoice.invoiceNo}_${Date.now()}.pdf`)
       } else {
-        // Alternative method was used, PDF should already be opened
-        console.log('PDF opened using alternative method')
+        console.log('PDF generated successfully')
       }
       return true
     }
@@ -891,9 +872,9 @@ export class BasePDFGenerator {
     const result = await this.generatePurchaseBillPDF(bill)
     if (result.success) {
       if (result.pdfUrl) {
-        this.openPDFInNewTab(result.pdfUrl)
+        this.downloadPDFDirectly(result.pdfUrl, `PurchaseBill_${bill.billNo}_${Date.now()}.pdf`)
       } else {
-        console.log('PDF opened using alternative method')
+        console.log('PDF generated successfully')
       }
       return true
     }
@@ -904,9 +885,9 @@ export class BasePDFGenerator {
     const result = await this.generatePaymentInPDF(payment)
     if (result.success) {
       if (result.pdfUrl) {
-        this.openPDFInNewTab(result.pdfUrl)
+        this.downloadPDFDirectly(result.pdfUrl, `PaymentReceipt_${payment.paymentNo}_${Date.now()}.pdf`)
       } else {
-        console.log('PDF opened using alternative method')
+        console.log('PDF generated successfully')
       }
       return true
     }
@@ -917,9 +898,9 @@ export class BasePDFGenerator {
     const result = await this.generatePaymentOutPDF(payment)
     if (result.success) {
       if (result.pdfUrl) {
-        this.openPDFInNewTab(result.pdfUrl)
+        this.downloadPDFDirectly(result.pdfUrl, `PaymentVoucher_${payment.paymentNo}_${Date.now()}.pdf`)
       } else {
-        console.log('PDF opened using alternative method')
+        console.log('PDF generated successfully')
       }
       return true
     }

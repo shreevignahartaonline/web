@@ -23,6 +23,7 @@ const PurchasePage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
   
   // Form states
   const [showForm, setShowForm] = useState(false)
@@ -93,6 +94,7 @@ const PurchasePage: React.FC = () => {
   const handleCreatePurchase = async () => {
     try {
       setError(null)
+      setIsCreating(true)
       
       // Validate bill number
       if (!formData.billNo.trim()) {
@@ -136,13 +138,8 @@ const PurchasePage: React.FC = () => {
       // Send PDF via WhatsApp
       try {
         const whatsappResult = await PurchaseService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult.success) {
+        if (whatsappResult) {
           setSuccess('PDF Generated and Sent Successfully!')
-        } else if (whatsappResult.shouldOpenPDF && whatsappResult.pdfBlob && whatsappResult.fileName) {
-          // WhatsApp sending failed, open PDF as fallback
-          const delay = BasePDFGenerator.isMobileDevice() ? 2000 : 0 // 2 second delay for mobile
-          await BasePDFGenerator.openPDFSafely(whatsappResult.pdfBlob, whatsappResult.fileName, delay)
-          setSuccess('Purchase created successfully! PDF opened.')
         } else {
           setSuccess('Purchase created successfully!')
         }
@@ -155,6 +152,8 @@ const PurchasePage: React.FC = () => {
       setShowForm(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create purchase')
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -904,8 +903,12 @@ const PurchasePage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isCreating}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isCreating && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
                   {editingPurchase ? 'Update Purchase' : 'Create Purchase'}
                 </button>
               </div>

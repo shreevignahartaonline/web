@@ -159,9 +159,9 @@ export class SaleService {
           
           console.log('Invoice data for PDF:', invoiceData)
           
-          // Generate and open PDF in new tab
+          // Generate and download PDF directly (works on mobile and desktop)
           await BasePDFGenerator.generateAndOpenInvoice(invoiceData)
-          console.log('Invoice PDF generated and opened successfully!')
+          console.log('Invoice PDF generated and downloaded successfully!')
         } catch (pdfError) {
           console.error('Error generating invoice PDF:', pdfError)
           // Don't throw error - PDF generation failure shouldn't break the sale creation
@@ -308,8 +308,8 @@ export class SaleService {
     }).format(amount)
   }
 
-  // Generate PDF and send via WhatsApp
-  static async generateAndSendPDFViaWhatsApp(sale: Sale): Promise<{ success: boolean; shouldOpenPDF?: boolean; pdfBlob?: Blob; fileName?: string }> {
+  // Generate PDF and send via WhatsApp (simplified - no PDF opening)
+  static async generateAndSendPDFViaWhatsApp(sale: Sale): Promise<boolean> {
     try {
       const invoiceData = {
         id: sale.id || '',
@@ -321,53 +321,16 @@ export class SaleService {
         date: sale.date
       }
       
-      const result = await BasePDFGenerator.generateUploadAndSendPDF(
+      const result = await BasePDFGenerator.generateAndSendPDFOnly(
         invoiceData, 
         'invoice', 
         sale.phoneNumber
       )
       
-      if (result.success) {
-        return { success: true }
-      } else {
-        // WhatsApp sending failed, generate PDF for fallback opening
-        const pdfResult = await BasePDFGenerator.generateInvoicePDF(invoiceData)
-        if (pdfResult.success) {
-          return { 
-            success: false, 
-            shouldOpenPDF: true, 
-            pdfBlob: pdfResult.pdfBlob, 
-            fileName: pdfResult.fileName 
-          }
-        }
-        return { success: false }
-      }
+      return result.success
     } catch (error) {
       console.error('Error generating and sending PDF via WhatsApp:', error)
-      // Try to generate PDF for fallback opening
-      try {
-        const invoiceData = {
-          id: sale.id || '',
-          invoiceNo: sale.invoiceNo,
-          partyName: sale.partyName,
-          phoneNumber: sale.phoneNumber,
-          items: sale.items,
-          totalAmount: sale.totalAmount,
-          date: sale.date
-        }
-        const pdfResult = await BasePDFGenerator.generateInvoicePDF(invoiceData)
-        if (pdfResult.success) {
-          return { 
-            success: false, 
-            shouldOpenPDF: true, 
-            pdfBlob: pdfResult.pdfBlob, 
-            fileName: pdfResult.fileName 
-          }
-        }
-      } catch (pdfError) {
-        console.error('Error generating fallback PDF:', pdfError)
-      }
-      return { success: false }
+      return false
     }
   }
 
