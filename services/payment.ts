@@ -410,7 +410,7 @@ export class PaymentService {
   }
 
   // Generate PDF and send via WhatsApp
-  static async generateAndSendPDFViaWhatsApp(payment: Payment): Promise<boolean> {
+  static async generateAndSendPDFViaWhatsApp(payment: Payment): Promise<{ success: boolean; shouldOpenPDF?: boolean; pdfBlob?: Blob; fileName?: string }> {
     try {
       if (payment.type === 'payment-in') {
         const paymentInData = {
@@ -429,7 +429,21 @@ export class PaymentService {
           payment.phoneNumber
         )
         
-        return result.success
+        if (result.success) {
+          return { success: true }
+        } else {
+          // WhatsApp sending failed, generate PDF for fallback opening
+          const pdfResult = await BasePDFGenerator.generatePaymentInPDF(paymentInData)
+          if (pdfResult.success) {
+            return { 
+              success: false, 
+              shouldOpenPDF: true, 
+              pdfBlob: pdfResult.pdfBlob, 
+              fileName: pdfResult.fileName 
+            }
+          }
+          return { success: false }
+        }
       } else if (payment.type === 'payment-out') {
         const paymentOutData = {
           id: payment.id || '',
@@ -447,13 +461,71 @@ export class PaymentService {
           payment.phoneNumber
         )
         
-        return result.success
+        if (result.success) {
+          return { success: true }
+        } else {
+          // WhatsApp sending failed, generate PDF for fallback opening
+          const pdfResult = await BasePDFGenerator.generatePaymentOutPDF(paymentOutData)
+          if (pdfResult.success) {
+            return { 
+              success: false, 
+              shouldOpenPDF: true, 
+              pdfBlob: pdfResult.pdfBlob, 
+              fileName: pdfResult.fileName 
+            }
+          }
+          return { success: false }
+        }
       }
       
-      return false
+      return { success: false }
     } catch (error) {
       console.error('Error generating and sending PDF via WhatsApp:', error)
-      return false
+      // Try to generate PDF for fallback opening
+      try {
+        if (payment.type === 'payment-in') {
+          const paymentInData = {
+            id: payment.id || '',
+            paymentNo: payment.paymentNo,
+            partyName: payment.partyName,
+            phoneNumber: payment.phoneNumber,
+            received: payment.amount,
+            totalAmount: payment.totalAmount,
+            date: payment.date
+          }
+          const pdfResult = await BasePDFGenerator.generatePaymentInPDF(paymentInData)
+          if (pdfResult.success) {
+            return { 
+              success: false, 
+              shouldOpenPDF: true, 
+              pdfBlob: pdfResult.pdfBlob, 
+              fileName: pdfResult.fileName 
+            }
+          }
+        } else if (payment.type === 'payment-out') {
+          const paymentOutData = {
+            id: payment.id || '',
+            paymentNo: payment.paymentNo,
+            partyName: payment.partyName,
+            phoneNumber: payment.phoneNumber,
+            paid: payment.amount,
+            totalAmount: payment.totalAmount,
+            date: payment.date
+          }
+          const pdfResult = await BasePDFGenerator.generatePaymentOutPDF(paymentOutData)
+          if (pdfResult.success) {
+            return { 
+              success: false, 
+              shouldOpenPDF: true, 
+              pdfBlob: pdfResult.pdfBlob, 
+              fileName: pdfResult.fileName 
+            }
+          }
+        }
+      } catch (pdfError) {
+        console.error('Error generating fallback PDF:', pdfError)
+      }
+      return { success: false }
     }
   }
 

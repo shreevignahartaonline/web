@@ -139,14 +139,19 @@ const SalesPage: React.FC = () => {
       // Send PDF via WhatsApp
       try {
         const whatsappResult = await SaleService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult) {
+        if (whatsappResult.success) {
           setSuccess('PDF Generated and Sent Successfully!')
+        } else if (whatsappResult.shouldOpenPDF && whatsappResult.pdfBlob && whatsappResult.fileName) {
+          // WhatsApp sending failed, open PDF as fallback
+          const delay = BasePDFGenerator.isMobileDevice() ? 2000 : 0 // 2 second delay for mobile
+          await BasePDFGenerator.openPDFSafely(whatsappResult.pdfBlob, whatsappResult.fileName, delay)
+          setSuccess('Sale created successfully! PDF opened.')
         } else {
-          setSuccess('Sale created successfully! PDF will open in a new tab.')
+          setSuccess('Sale created successfully!')
         }
       } catch (whatsappError) {
         console.error('WhatsApp send error:', whatsappError)
-        setSuccess('Sale created successfully! PDF will open in a new tab.')
+        setSuccess('Sale created successfully!')
       }
       
       resetForm()

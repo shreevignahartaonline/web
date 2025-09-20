@@ -135,14 +135,19 @@ const PurchasePage: React.FC = () => {
       // Send PDF via WhatsApp
       try {
         const whatsappResult = await PurchaseService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult) {
+        if (whatsappResult.success) {
           setSuccess('PDF Generated and Sent Successfully!')
+        } else if (whatsappResult.shouldOpenPDF && whatsappResult.pdfBlob && whatsappResult.fileName) {
+          // WhatsApp sending failed, open PDF as fallback
+          const delay = BasePDFGenerator.isMobileDevice() ? 2000 : 0 // 2 second delay for mobile
+          await BasePDFGenerator.openPDFSafely(whatsappResult.pdfBlob, whatsappResult.fileName, delay)
+          setSuccess('Purchase created successfully! PDF opened.')
         } else {
-          setSuccess('Purchase created successfully! PDF will open in a new tab.')
+          setSuccess('Purchase created successfully!')
         }
       } catch (whatsappError) {
         console.error('WhatsApp send error:', whatsappError)
-        setSuccess('Purchase created successfully! PDF will open in a new tab.')
+        setSuccess('Purchase created successfully!')
       }
       
       resetForm()

@@ -721,24 +721,118 @@ export class BasePDFGenerator {
     URL.revokeObjectURL(url)
   }
 
-  // Open PDF in new tab helper method
-  static openPDFInNewTab(pdfUrl) {
+  // Detect if the current device is mobile
+  static isMobileDevice() {
+    if (typeof window === 'undefined') return false
+    
+    // Check user agent for mobile indicators
+    const userAgent = navigator.userAgent.toLowerCase()
+    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
+    
+    // Check for mobile keywords in user agent
+    const hasMobileKeyword = mobileKeywords.some(keyword => userAgent.includes(keyword))
+    
+    // Check screen size (mobile devices typically have smaller screens)
+    const isSmallScreen = window.innerWidth <= 768
+    
+    // Check for touch capability
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    
+    return hasMobileKeyword || (isSmallScreen && hasTouch)
+  }
+
+  // Open PDF in new tab helper method with mobile support
+  static openPDFInNewTab(pdfUrl, fileName = 'document.pdf') {
     try {
       console.log('Opening PDF in new tab:', pdfUrl)
-      const newWindow = window.open(pdfUrl, '_blank')
-      if (!newWindow) {
-        console.error('Failed to open new window - popup blocked?')
-        // Fallback: try to download instead
+      
+      if (this.isMobileDevice()) {
+        // For mobile devices, download instead of opening in new tab
+        // This prevents tab navigation issues
         const link = document.createElement('a')
         link.href = pdfUrl
-        link.download = 'document.pdf'
+        link.download = fileName
+        link.style.display = 'none'
+        document.body.appendChild(link)
         link.click()
+        document.body.removeChild(link)
+        console.log('PDF downloaded for mobile device')
       } else {
-        console.log('PDF opened successfully in new tab')
+        // For desktop, open in new tab as usual
+        const newWindow = window.open(pdfUrl, '_blank')
+        if (!newWindow) {
+          console.error('Failed to open new window - popup blocked?')
+          // Fallback: try to download instead
+          const link = document.createElement('a')
+          link.href = pdfUrl
+          link.download = fileName
+          link.style.display = 'none'
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        } else {
+          console.log('PDF opened successfully in new tab')
+        }
       }
     } catch (error) {
       console.error('Error opening PDF in new tab:', error)
     }
+  }
+
+  // Safely open PDF with delay for mobile devices
+  static async openPDFSafely(pdfBlob, fileName, delay = 0) {
+    return new Promise((resolve) => {
+      const openPDF = () => {
+        try {
+          const pdfUrl = URL.createObjectURL(pdfBlob)
+          
+          if (this.isMobileDevice()) {
+            // For mobile devices, use download approach
+            const link = document.createElement('a')
+            link.href = pdfUrl
+            link.download = fileName
+            link.style.display = 'none'
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            
+            // Clean up the blob URL after a short delay
+            setTimeout(() => {
+              URL.revokeObjectURL(pdfUrl)
+            }, 1000)
+          } else {
+            // For desktop, open in new tab as usual
+            const newWindow = window.open(pdfUrl, '_blank')
+            if (!newWindow) {
+              // Fallback to download if popup is blocked
+              const link = document.createElement('a')
+              link.href = pdfUrl
+              link.download = fileName
+              link.style.display = 'none'
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+            }
+            
+            // Clean up the blob URL after a short delay
+            setTimeout(() => {
+              URL.revokeObjectURL(pdfUrl)
+            }, 1000)
+          }
+          
+          resolve()
+        } catch (error) {
+          console.error('Error opening PDF:', error)
+          resolve()
+        }
+      }
+      
+      if (delay > 0) {
+        setTimeout(openPDF, delay)
+      } else {
+        openPDF()
+      }
+    })
   }
 
   // Convenience methods for generating and downloading

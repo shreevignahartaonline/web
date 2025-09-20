@@ -374,7 +374,7 @@ export class PurchaseService {
   }
 
   // Generate PDF and send via WhatsApp
-  static async generateAndSendPDFViaWhatsApp(purchase: Purchase): Promise<boolean> {
+  static async generateAndSendPDFViaWhatsApp(purchase: Purchase): Promise<{ success: boolean; shouldOpenPDF?: boolean; pdfBlob?: Blob; fileName?: string }> {
     try {
       const billData = {
         id: purchase.id || '',
@@ -392,10 +392,47 @@ export class PurchaseService {
         purchase.phoneNumber
       )
       
-      return result.success
+      if (result.success) {
+        return { success: true }
+      } else {
+        // WhatsApp sending failed, generate PDF for fallback opening
+        const pdfResult = await BasePDFGenerator.generatePurchaseBillPDF(billData)
+        if (pdfResult.success) {
+          return { 
+            success: false, 
+            shouldOpenPDF: true, 
+            pdfBlob: pdfResult.pdfBlob, 
+            fileName: pdfResult.fileName 
+          }
+        }
+        return { success: false }
+      }
     } catch (error) {
       console.error('Error generating and sending PDF via WhatsApp:', error)
-      return false
+      // Try to generate PDF for fallback opening
+      try {
+        const billData = {
+          id: purchase.id || '',
+          billNo: purchase.billNo,
+          partyName: purchase.partyName,
+          phoneNumber: purchase.phoneNumber,
+          items: purchase.items,
+          totalAmount: purchase.totalAmount,
+          date: purchase.date
+        }
+        const pdfResult = await BasePDFGenerator.generatePurchaseBillPDF(billData)
+        if (pdfResult.success) {
+          return { 
+            success: false, 
+            shouldOpenPDF: true, 
+            pdfBlob: pdfResult.pdfBlob, 
+            fileName: pdfResult.fileName 
+          }
+        }
+      } catch (pdfError) {
+        console.error('Error generating fallback PDF:', pdfError)
+      }
+      return { success: false }
     }
   }
 
