@@ -27,6 +27,7 @@ import {
 import { PaymentService, Payment, PaymentCreateData, PaymentFilters } from "@/services/payment"
 import { partyService, Party } from "@/services/party"
 import { toast } from "sonner"
+import BasePDFGenerator from "@/services/basePDFGenerator"
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])

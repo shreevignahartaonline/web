@@ -5,6 +5,7 @@ import { PurchaseService, Purchase, PurchaseCreateData, PurchaseItem } from '../
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
 import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import BasePDFGenerator from '../../services/basePDFGenerator'
 
 interface PurchaseFormData {
   billNo: string

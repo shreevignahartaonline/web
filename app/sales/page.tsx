@@ -5,6 +5,7 @@ import { SaleService, Sale, SaleCreateData, SaleItem } from '../../services/sale
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
 import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import BasePDFGenerator from '../../services/basePDFGenerator'
 
 interface SaleFormData {
   invoiceNo: string
