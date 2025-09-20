@@ -31,6 +31,7 @@ export interface SaleFilters {
 }
 
 export interface SaleCreateData {
+  invoiceNo: string
   partyName: string
   phoneNumber: string
   items: SaleItem[]
@@ -39,6 +40,7 @@ export interface SaleCreateData {
 }
 
 export interface SaleUpdateData {
+  invoiceNo?: string
   partyName?: string
   phoneNumber?: string
   items?: SaleItem[]
@@ -252,23 +254,34 @@ export class SaleService {
     }
   }
 
-  // Generate next invoice number (utility function)
-  static async generateNextInvoiceNumber(): Promise<string> {
+  // Check if invoice number already exists
+  static async isInvoiceNumberExists(invoiceNo: string): Promise<boolean> {
     try {
-      // This would typically be handled by the backend, but we can simulate it
-      // by getting the latest sale and incrementing the invoice number
       const sales = await this.getSales()
-      if (sales.data.length === 0) {
-        return '1'
-      }
-      
-      const latestSale = sales.data[0]
-      const lastNumber = parseInt(latestSale.invoiceNo)
-      return isNaN(lastNumber) ? '1' : (lastNumber + 1).toString()
+      return sales.data.some(sale => sale.invoiceNo === invoiceNo.trim())
     } catch (error) {
-      console.error('Error generating invoice number:', error)
-      return '1'
+      console.error('Error checking invoice number:', error)
+      return false
     }
+  }
+
+  // Validate invoice number format
+  static validateInvoiceNumber(invoiceNo: string): { isValid: boolean; error?: string } {
+    if (!invoiceNo || typeof invoiceNo !== 'string') {
+      return { isValid: false, error: 'Invoice number is required' }
+    }
+    
+    const trimmed = invoiceNo.trim()
+    
+    if (trimmed.length < 1 || trimmed.length > 50) {
+      return { isValid: false, error: 'Invoice number must be 1-50 characters long' }
+    }
+    
+    if (!/^[A-Za-z0-9\-_]+$/.test(trimmed)) {
+      return { isValid: false, error: 'Invoice number can only contain letters, numbers, hyphens, and underscores' }
+    }
+    
+    return { isValid: true }
   }
 
   // Format date for display
@@ -293,26 +306,6 @@ export class SaleService {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     }).format(amount)
-  }
-
-  // Generate PDF for existing sale
-  static async generatePDFForSale(sale: Sale): Promise<boolean> {
-    try {
-      const invoiceData = {
-        id: sale.id || '',
-        invoiceNo: sale.invoiceNo,
-        partyName: sale.partyName,
-        phoneNumber: sale.phoneNumber,
-        items: sale.items,
-        totalAmount: sale.totalAmount,
-        date: sale.date
-      }
-      
-      return await BasePDFGenerator.generateAndOpenInvoice(invoiceData)
-    } catch (error) {
-      console.error('Error generating PDF for sale:', error)
-      return false
-    }
   }
 
   // Generate PDF and send via WhatsApp
@@ -365,6 +358,12 @@ export class SaleService {
   // Validate sale data
   static validateSaleData(saleData: SaleCreateData): { isValid: boolean; errors: string[] } {
     const errors: string[] = []
+
+    // Validate invoice number
+    const invoiceValidation = this.validateInvoiceNumber(saleData.invoiceNo)
+    if (!invoiceValidation.isValid) {
+      errors.push(invoiceValidation.error || 'Invalid invoice number')
+    }
 
     if (!saleData.partyName?.trim()) {
       errors.push('Party name is required')

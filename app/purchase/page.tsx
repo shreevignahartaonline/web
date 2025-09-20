@@ -7,6 +7,7 @@ import { itemService, Item } from '../../services/item'
 import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface PurchaseFormData {
+  billNo: string
   partyName: string
   phoneNumber: string
   items: PurchaseItem[]
@@ -35,6 +36,7 @@ const PurchasePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const purchasesPerPage = 10
   const [formData, setFormData] = useState<PurchaseFormData>({
+    billNo: '',
     partyName: '',
     phoneNumber: '',
     items: [],
@@ -90,6 +92,19 @@ const PurchasePage: React.FC = () => {
   const handleCreatePurchase = async () => {
     try {
       setError(null)
+      
+      // Validate bill number
+      if (!formData.billNo.trim()) {
+        setError('Bill number is required')
+        return
+      }
+      
+      // Check if bill number already exists
+      const billExists = await checkBillNumberExists(formData.billNo)
+      if (billExists) {
+        setError('Bill number already exists. Please use a different bill number.')
+        return
+      }
       
       // Basic validation
       if (!formData.partyName.trim()) {
@@ -200,6 +215,7 @@ const PurchasePage: React.FC = () => {
     }
     
     setFormData({
+      billNo: purchase.billNo,
       partyName: purchase.partyName,
       phoneNumber: purchase.phoneNumber,
       items: purchase.items,
@@ -210,6 +226,7 @@ const PurchasePage: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
+      billNo: '',
       partyName: '',
       phoneNumber: '',
       items: [],
@@ -261,13 +278,14 @@ const PurchasePage: React.FC = () => {
   
   const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
 
-  // Helper function to generate next bill number
-  const getNextBillNumber = () => {
-    if (purchases.length === 0) return '1'
-    
-    // Find the highest bill number
-    const maxBillNo = Math.max(...purchases.map(purchase => parseInt(purchase.billNo) || 0))
-    return (maxBillNo + 1).toString()
+  // Helper function to check if bill number already exists
+  const checkBillNumberExists = async (billNo: string): Promise<boolean> => {
+    try {
+      return await PurchaseService.isBillNumberExists(billNo)
+    } catch (error) {
+      console.error('Error checking bill number:', error)
+      return false
+    }
   }
 
   // Party handling functions
@@ -599,7 +617,7 @@ const PurchasePage: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-blue-800">
-                {editingPurchase ? `Edit Purchase - BILL-${editingPurchase.billNo}` : `BILL-${getNextBillNumber()}`}
+                {editingPurchase ? `Edit Purchase - ${editingPurchase.billNo}` : 'Add New Purchase'}
               </h2>
               {/* Party Balance Display */}
               {formData.partyName && parties.find(p => p.name === formData.partyName) ? (
@@ -629,6 +647,24 @@ const PurchasePage: React.FC = () => {
               e.preventDefault()
               editingPurchase ? handleUpdatePurchase() : handleCreatePurchase()
             }}>
+              {/* Bill Number */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bill Number *
+                </label>
+                <input
+                  type="text"
+                  value={formData.billNo}
+                  onChange={(e) => setFormData(prev => ({ ...prev, billNo: e.target.value }))}
+                  placeholder="Enter bill number (e.g., BILL-2024-001)"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Bill number must be unique and contain only letters, numbers, hyphens, and underscores
+                </p>
+              </div>
+
               {/* Party Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="relative">

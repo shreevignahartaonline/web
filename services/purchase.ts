@@ -31,6 +31,7 @@ export interface PurchaseFilters {
 }
 
 export interface PurchaseCreateData {
+  billNo: string
   partyName: string
   phoneNumber: string
   items: PurchaseItem[]
@@ -39,6 +40,7 @@ export interface PurchaseCreateData {
 }
 
 export interface PurchaseUpdateData {
+  billNo?: string
   partyName?: string
   phoneNumber?: string
   items?: PurchaseItem[]
@@ -321,19 +323,34 @@ export class PurchaseService {
     }
   }
 
-  // Generate next bill number (this would typically be handled by the backend)
-  static async generateNextBillNumber(): Promise<string> {
+  // Check if bill number already exists
+  static async isBillNumberExists(billNo: string): Promise<boolean> {
     try {
-      const purchases = await PurchaseService.getPurchases()
-      if (purchases.data.length === 0) return '1'
-      
-      // Find the highest bill number
-      const maxBillNo = Math.max(...purchases.data.map(purchase => parseInt(purchase.billNo) || 0))
-      return (maxBillNo + 1).toString()
+      const purchases = await this.getPurchases()
+      return purchases.data.some(purchase => purchase.billNo === billNo.trim())
     } catch (error) {
-      console.error('Error generating bill number:', error)
-      return '1'
+      console.error('Error checking bill number:', error)
+      return false
     }
+  }
+
+  // Validate bill number format
+  static validateBillNumber(billNo: string): { isValid: boolean; error?: string } {
+    if (!billNo || typeof billNo !== 'string') {
+      return { isValid: false, error: 'Bill number is required' }
+    }
+    
+    const trimmed = billNo.trim()
+    
+    if (trimmed.length < 1 || trimmed.length > 50) {
+      return { isValid: false, error: 'Bill number must be 1-50 characters long' }
+    }
+    
+    if (!/^[A-Za-z0-9\-_]+$/.test(trimmed)) {
+      return { isValid: false, error: 'Bill number can only contain letters, numbers, hyphens, and underscores' }
+    }
+    
+    return { isValid: true }
   }
 
   // Generate PDF for existing purchase
@@ -407,6 +424,12 @@ export class PurchaseService {
   static validatePurchaseData(data: PurchaseCreateData): string[] {
     const errors: string[] = []
 
+    // Validate bill number
+    const billValidation = this.validateBillNumber(data.billNo)
+    if (!billValidation.isValid) {
+      errors.push(billValidation.error || 'Invalid bill number')
+    }
+
     if (!data.partyName?.trim()) {
       errors.push('Party name is required')
     }
@@ -440,3 +463,4 @@ export class PurchaseService {
 }
 
 export default PurchaseService
+

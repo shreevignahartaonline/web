@@ -7,6 +7,7 @@ import { itemService, Item } from '../../services/item'
 import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface SaleFormData {
+  invoiceNo: string
   partyName: string
   phoneNumber: string
   items: SaleItem[]
@@ -35,6 +36,7 @@ const SalesPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const salesPerPage = 10
   const [formData, setFormData] = useState<SaleFormData>({
+    invoiceNo: '',
     partyName: '',
     phoneNumber: '',
     items: [],
@@ -90,6 +92,19 @@ const SalesPage: React.FC = () => {
   const handleCreateSale = async () => {
     try {
       setError(null)
+      
+      // Validate invoice number
+      if (!formData.invoiceNo.trim()) {
+        setError('Invoice number is required')
+        return
+      }
+      
+      // Check if invoice number already exists
+      const invoiceExists = await checkInvoiceNumberExists(formData.invoiceNo)
+      if (invoiceExists) {
+        setError('Invoice number already exists. Please use a different invoice number.')
+        return
+      }
       
       // Basic validation
       if (!formData.partyName.trim()) {
@@ -208,6 +223,7 @@ const SalesPage: React.FC = () => {
     }
     
     setFormData({
+      invoiceNo: sale.invoiceNo,
       partyName: sale.partyName,
       phoneNumber: sale.phoneNumber,
       items: sale.items,
@@ -218,6 +234,7 @@ const SalesPage: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
+      invoiceNo: '',
       partyName: '',
       phoneNumber: '',
       items: [],
@@ -269,13 +286,14 @@ const SalesPage: React.FC = () => {
   
   const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
 
-  // Helper function to generate next invoice number
-  const getNextInvoiceNumber = () => {
-    if (sales.length === 0) return '1'
-    
-    // Find the highest invoice number
-    const maxInvoiceNo = Math.max(...sales.map(sale => parseInt(sale.invoiceNo) || 0))
-    return (maxInvoiceNo + 1).toString()
+  // Helper function to check if invoice number already exists
+  const checkInvoiceNumberExists = async (invoiceNo: string): Promise<boolean> => {
+    try {
+      return await SaleService.isInvoiceNumberExists(invoiceNo)
+    } catch (error) {
+      console.error('Error checking invoice number:', error)
+      return false
+    }
   }
 
   // Party handling functions
@@ -607,7 +625,7 @@ const SalesPage: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-blue-800">
-                {editingSale ? `Edit Sale - INV-${editingSale.invoiceNo}` : `INV-${getNextInvoiceNumber()}`}
+                {editingSale ? `Edit Sale - ${editingSale.invoiceNo}` : 'Add New Sale'}
               </h2>
               {/* Party Balance Display */}
               {formData.partyName && parties.find(p => p.name === formData.partyName) ? (
@@ -637,6 +655,24 @@ const SalesPage: React.FC = () => {
               e.preventDefault()
               editingSale ? handleUpdateSale() : handleCreateSale()
             }}>
+              {/* Invoice Number */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Invoice Number *
+                </label>
+                <input
+                  type="text"
+                  value={formData.invoiceNo}
+                  onChange={(e) => setFormData(prev => ({ ...prev, invoiceNo: e.target.value }))}
+                  placeholder="Enter invoice number (e.g., INV-2024-001)"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Invoice number must be unique and contain only letters, numbers, hyphens, and underscores
+                </p>
+              </div>
+
               {/* Party Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="relative">
