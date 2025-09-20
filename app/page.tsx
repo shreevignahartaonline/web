@@ -295,7 +295,7 @@ export default function Dashboard() {
         setTransactionDetail(detailResponse.data)
         setIsTransactionDetailOpen(true)
       } else {
-        setError(detailResponse.error || 'Failed to load transaction details')
+        setError(detailResponse.message || 'Failed to load transaction details')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load transaction details')

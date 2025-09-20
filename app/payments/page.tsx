@@ -248,8 +248,8 @@ export default function PaymentsPage() {
         setPaymentDetail(detailResponse.data)
         setIsTransactionDetailOpen(true)
       } else {
-        setError(detailResponse.error || 'Failed to load payment details')
-        toast.error(detailResponse.error || 'Failed to load payment details')
+        setError(detailResponse.message || 'Failed to load payment details')
+        toast.error(detailResponse.message || 'Failed to load payment details')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load payment details')

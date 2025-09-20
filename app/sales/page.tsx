@@ -257,7 +257,7 @@ const SalesPage: React.FC = () => {
         setSaleDetail(detailResponse.data)
         setIsTransactionDetailOpen(true)
       } else {
-        setError(detailResponse.error || 'Failed to load sale details')
+        setError(detailResponse.message || 'Failed to load sale details')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load sale details')

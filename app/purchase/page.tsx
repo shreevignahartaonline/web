@@ -249,7 +249,7 @@ const PurchasePage: React.FC = () => {
         setPurchaseDetail(detailResponse.data)
         setIsTransactionDetailOpen(true)
       } else {
-        setError(detailResponse.error || 'Failed to load purchase details')
+        setError(detailResponse.message || 'Failed to load purchase details')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load purchase details')
