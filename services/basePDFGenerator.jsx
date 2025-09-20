@@ -274,6 +274,10 @@ export class BasePDFGenerator {
                     <Text style={styles.infoLabel}>Phone:</Text>
                     <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
                   </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
+                  </View>
                 </View>
               </View>
 
@@ -295,6 +299,16 @@ export class BasePDFGenerator {
                     <Text style={styles.tableCellRight}>{this.formatNumber(item.total)}</Text>
                   </View>
                 ))}
+                {/* Total Bags Row */}
+                <View style={[styles.tableRow, { backgroundColor: '#f3f4f6', borderTop: '2px solid #6366f1' }]}>
+                  <Text style={styles.tableCellLeft}>Total Bags:</Text>
+                  <Text style={styles.tableCell}></Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold', color: '#6366f1' }]}>
+                    {this.formatNumber(invoice.items.reduce((total, item) => total + parseInt(this.calculateBags(item.quantity)), 0))}
+                  </Text>
+                  <Text style={styles.tableCellRight}></Text>
+                  <Text style={styles.tableCellRight}></Text>
+                </View>
               </View>
 
               {/* Total Section */}
@@ -392,6 +406,10 @@ export class BasePDFGenerator {
                     <Text style={styles.infoLabel}>Phone:</Text>
                     <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
                   </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
+                  </View>
                 </View>
               </View>
 
@@ -413,6 +431,16 @@ export class BasePDFGenerator {
                     <Text style={styles.tableCellRight}>{this.formatNumber(item.total)}</Text>
                   </View>
                 ))}
+                {/* Total Bags Row */}
+                <View style={[styles.tableRow, { backgroundColor: '#fef2f2', borderTop: '2px solid #dc2626' }]}>
+                  <Text style={styles.tableCellLeft}>Total Bags:</Text>
+                  <Text style={styles.tableCell}></Text>
+                  <Text style={[styles.tableCell, { fontWeight: 'bold', color: '#dc2626' }]}>
+                    {this.formatNumber(bill.items.reduce((total, item) => total + parseInt(this.calculateBags(item.quantity)), 0))}
+                  </Text>
+                  <Text style={styles.tableCellRight}></Text>
+                  <Text style={styles.tableCellRight}></Text>
+                </View>
               </View>
 
               {/* Total Section */}
@@ -527,6 +555,10 @@ export class BasePDFGenerator {
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Phone:</Text>
                     <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
                   </View>
                 </View>
               </View>
@@ -651,6 +683,10 @@ export class BasePDFGenerator {
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Phone:</Text>
                     <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
                   </View>
                 </View>
               </View>

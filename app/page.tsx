@@ -1080,14 +1080,25 @@ export default function Dashboard() {
       </Dialog>
 
       {/* Transaction Detail Dialog */}
-      <Dialog open={isTransactionDetailOpen} onOpenChange={setIsTransactionDetailOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Transaction Details</DialogTitle>
-            <DialogDescription>
-              View complete transaction information.
-            </DialogDescription>
-          </DialogHeader>
+      {isTransactionDetailOpen && (
+        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+          <div className="min-h-screen p-4">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-blue-800">Transaction Details</h2>
+                <p className="text-gray-600">View complete transaction information</p>
+              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setIsTransactionDetailOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                title="Close"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           {loadingTransactionDetail ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -1213,13 +1224,9 @@ export default function Dashboard() {
               <p className="text-muted-foreground">Failed to load transaction details</p>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

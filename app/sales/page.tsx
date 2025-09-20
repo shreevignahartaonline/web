@@ -14,8 +14,16 @@ interface SaleFormData {
   invoiceNo: string
   partyName: string
   phoneNumber: string
-  items: SaleItem[]
+  items: SaleItemFormData[]
   date: string
+}
+
+interface SaleItemFormData {
+  id: string
+  itemName: string
+  quantity: string | number
+  rate: string | number
+  total: number
 }
 
 const SalesPage: React.FC = () => {
@@ -142,7 +150,12 @@ const SalesPage: React.FC = () => {
 
       const saleData = {
         ...formData,
-        date: formattedDate
+        date: formattedDate,
+        items: formData.items.map(item => ({
+          ...item,
+          quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : item.quantity,
+          rate: typeof item.rate === 'string' ? parseFloat(item.rate) || 0 : item.rate
+        }))
       }
 
       const response = await SaleService.createSale(saleData)
@@ -200,7 +213,12 @@ const SalesPage: React.FC = () => {
 
       const saleData = {
         ...formData,
-        date: formattedDate
+        date: formattedDate,
+        items: formData.items.map(item => ({
+          ...item,
+          quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : item.quantity,
+          rate: typeof item.rate === 'string' ? parseFloat(item.rate) || 0 : item.rate
+        }))
       }
 
       const response = await SaleService.updateSale(editingSale.id!, saleData)
@@ -401,8 +419,8 @@ const SalesPage: React.FC = () => {
       items: [...prev.items, {
         id: item._id || '',
         itemName: item.productName,
-        quantity: 0,
-        rate: 0,
+        quantity: '',
+        rate: '',
         total: 0
       }]
     }))
@@ -413,12 +431,14 @@ const SalesPage: React.FC = () => {
     // Keep showItemSearchBar as true so search bar stays visible
   }
 
-  const updateItemQuantity = (index: number, quantity: number) => {
+  const updateItemQuantity = (index: number, quantity: string | number) => {
     setFormData(prev => ({
       ...prev,
       items: prev.items.map((item, i) => {
         if (i === index) {
-          const updatedItem = { ...item, quantity, total: quantity * item.rate }
+          const quantityNum = typeof quantity === 'string' ? parseFloat(quantity) || 0 : quantity
+          const rateNum = typeof item.rate === 'string' ? parseFloat(item.rate) || 0 : item.rate
+          const updatedItem = { ...item, quantity, total: quantityNum * rateNum }
           return updatedItem
         }
         return item
@@ -426,12 +446,14 @@ const SalesPage: React.FC = () => {
     }))
   }
 
-  const updateItemRate = (index: number, rate: number) => {
+  const updateItemRate = (index: number, rate: string | number) => {
     setFormData(prev => ({
       ...prev,
       items: prev.items.map((item, i) => {
         if (i === index) {
-          const updatedItem = { ...item, rate, total: item.quantity * rate }
+          const rateNum = typeof rate === 'string' ? parseFloat(rate) || 0 : rate
+          const quantityNum = typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : item.quantity
+          const updatedItem = { ...item, rate, total: quantityNum * rateNum }
           return updatedItem
         }
         return item
@@ -691,34 +713,49 @@ const SalesPage: React.FC = () => {
 
       {/* Sale Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+          <div className="min-h-screen p-4">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-blue-800">
                 {editingSale ? `Edit Sale - ${editingSale.invoiceNo}` : 'Add New Sale'}
               </h2>
-              {/* Party Balance Display */}
-              {formData.partyName && parties.find(p => p.name === formData.partyName) ? (
-                <div className="text-right">
-                  <div className="text-sm text-gray-500">Balance</div>
-                  <div className={`text-lg font-semibold ${
-                    (() => {
-                      const party = parties.find(p => p.name === formData.partyName)
-                      if (!party || party.balance === undefined) return 'text-gray-900'
-                      if (party.balance > 0) return 'text-green-600'
-                      if (party.balance < 0) return 'text-red-600'
-                      return 'text-gray-900'
-                    })()
-                  }`}>
-                    ₹{(() => {
-                      const party = parties.find(p => p.name === formData.partyName)
-                      return party?.balance?.toFixed(2) || '0.00'
-                    })()}
+              <div className="flex items-center gap-4">
+                {/* Party Balance Display */}
+                {formData.partyName && parties.find(p => p.name === formData.partyName) ? (
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500">Balance</div>
+                    <div className={`text-lg font-semibold ${
+                      (() => {
+                        const party = parties.find(p => p.name === formData.partyName)
+                        if (!party || party.balance === undefined) return 'text-gray-900'
+                        if (party.balance > 0) return 'text-green-600'
+                        if (party.balance < 0) return 'text-red-600'
+                        return 'text-gray-900'
+                      })()
+                    }`}>
+                      ₹{(() => {
+                        const party = parties.find(p => p.name === formData.partyName)
+                        return party?.balance?.toFixed(2) || '0.00'
+                      })()}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div></div>
-              )}
+                ) : (
+                  <div></div>
+                )}
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setShowForm(false)
+                    resetForm()
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                  title="Close"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <form onSubmit={(e) => {
@@ -917,7 +954,7 @@ const SalesPage: React.FC = () => {
                               min="0"
                               step="0.1"
                               value={item.quantity}
-                              onChange={(e) => updateItemQuantity(index, parseFloat(e.target.value) || 0)}
+                              onChange={(e) => updateItemQuantity(index, e.target.value)}
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -930,7 +967,7 @@ const SalesPage: React.FC = () => {
                               min="0"
                               step="0.01"
                               value={item.rate}
-                              onChange={(e) => updateItemRate(index, parseFloat(e.target.value) || 0)}
+                              onChange={(e) => updateItemRate(index, e.target.value)}
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -991,14 +1028,25 @@ const SalesPage: React.FC = () => {
       )}
 
       {/* Sale Detail Dialog */}
-      <Dialog open={isTransactionDetailOpen} onOpenChange={setIsTransactionDetailOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Sale Details</DialogTitle>
-            <DialogDescription>
-              View complete sale information.
-            </DialogDescription>
-          </DialogHeader>
+      {isTransactionDetailOpen && (
+        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+          <div className="min-h-screen p-4">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-blue-800">Sale Details</h2>
+                <p className="text-gray-600">View complete sale information</p>
+              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setIsTransactionDetailOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                title="Close"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           {loadingSaleDetail ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -1075,13 +1123,9 @@ const SalesPage: React.FC = () => {
               <p className="text-muted-foreground">Failed to load sale details</p>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
