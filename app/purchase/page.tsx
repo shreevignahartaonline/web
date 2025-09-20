@@ -4,8 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { PurchaseService, Purchase, PurchaseCreateData, PurchaseItem } from '../../services/purchase'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
-import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Edit, Trash2, ChevronLeft, ChevronRight, Eye, Loader2 } from 'lucide-react'
 import BasePDFGenerator from '../../services/basePDFGenerator'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 interface PurchaseFormData {
   billNo: string
@@ -33,6 +36,12 @@ const PurchasePage: React.FC = () => {
   const [itemSearchQuery, setItemSearchQuery] = useState('')
   const [filteredItems, setFilteredItems] = useState<Item[]>([])
   const [showItemSearchBar, setShowItemSearchBar] = useState(false)
+  
+  // Transaction detail states
+  const [isTransactionDetailOpen, setIsTransactionDetailOpen] = useState(false)
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null)
+  const [purchaseDetail, setPurchaseDetail] = useState<Purchase | null>(null)
+  const [loadingPurchaseDetail, setLoadingPurchaseDetail] = useState(false)
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -227,6 +236,26 @@ const PurchasePage: React.FC = () => {
       date: formattedDate
     })
     setShowForm(true)
+  }
+
+  const handleViewPurchase = async (purchase: Purchase) => {
+    try {
+      setLoadingPurchaseDetail(true)
+      setSelectedPurchase(purchase)
+      
+      const detailResponse = await PurchaseService.getPurchase(purchase.id!)
+      
+      if (detailResponse.success) {
+        setPurchaseDetail(detailResponse.data)
+        setIsTransactionDetailOpen(true)
+      } else {
+        setError(detailResponse.error || 'Failed to load purchase details')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load purchase details')
+    } finally {
+      setLoadingPurchaseDetail(false)
+    }
   }
 
   const resetForm = () => {
@@ -466,7 +495,11 @@ const PurchasePage: React.FC = () => {
           </div>
         ) : (
           currentPurchases.map((purchase) => (
-            <div key={purchase.id} className="border rounded-lg hover:bg-gray-50 transition-colors">
+            <div 
+              key={purchase.id} 
+              className="border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={() => handleViewPurchase(purchase)}
+            >
               {/* Desktop Layout */}
               <div className="hidden md:flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
@@ -507,14 +540,30 @@ const PurchasePage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleEditPurchase(purchase)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewPurchase(purchase)
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                      title="View Purchase Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditPurchase(purchase)
+                      }}
                       className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
                       title="Edit Purchase"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDeletePurchase(purchase.id!)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeletePurchase(purchase.id!)
+                      }}
                       className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
                       title="Delete Purchase"
                     >
@@ -556,14 +605,30 @@ const PurchasePage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleEditPurchase(purchase)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewPurchase(purchase)
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                      title="View Purchase Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditPurchase(purchase)
+                      }}
                       className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
                       title="Edit Purchase"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDeletePurchase(purchase.id!)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeletePurchase(purchase.id!)
+                      }}
                       className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
                       title="Delete Purchase"
                     >
@@ -790,7 +855,7 @@ const PurchasePage: React.FC = () => {
                                 <h4 className="font-semibold text-gray-900">{item.productName}</h4>
                                 <p className="text-sm text-gray-600">Category: {item.category}</p>
                                 <p className="text-sm text-gray-500">
-                                  Stock: {item.openingStock} bags
+                                  Stock: {Math.ceil(item.openingStock)} bags
                                   {item.lowStockAlert && item.openingStock <= item.lowStockAlert && (
                                     <span className="text-red-500 ml-2">⚠️ Low Stock</span>
                                   )}
@@ -916,6 +981,99 @@ const PurchasePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Purchase Detail Dialog */}
+      <Dialog open={isTransactionDetailOpen} onOpenChange={setIsTransactionDetailOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Purchase Details</DialogTitle>
+            <DialogDescription>
+              View complete purchase information.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingPurchaseDetail ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading purchase details...</span>
+            </div>
+          ) : purchaseDetail && selectedPurchase ? (
+            <div className="space-y-6">
+              {/* Purchase Header */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Bill #{purchaseDetail.billNo}</h3>
+                    <p className="text-sm text-muted-foreground">{purchaseDetail.date}</p>
+                  </div>
+                </div>
+                <Badge className="bg-blue-100 text-blue-800">Purchase</Badge>
+              </div>
+
+              {/* Party Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Party Information</h4>
+                <div className="grid gap-3 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span className="font-medium">{purchaseDetail.partyName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span>{purchaseDetail.phoneNumber}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Items</h4>
+                <div className="space-y-2">
+                  {purchaseDetail.items.map((item: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium">{item.itemName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Qty: {item.quantity.toLocaleString()} kg | Rate: ₹{item.rate.toLocaleString()}
+                        </p>
+                      </div>
+                      <p className="font-semibold">₹{item.total.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Amount */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <span className="text-lg font-semibold">Total Amount:</span>
+                <span className="text-xl font-bold text-blue-600">
+                  ₹{purchaseDetail.totalAmount.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <svg className="h-12 w-12 text-muted-foreground mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-muted-foreground">Failed to load purchase details</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

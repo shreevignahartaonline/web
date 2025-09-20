@@ -216,11 +216,11 @@ export class BasePDFGenerator {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   }
 
-  // Helper function to calculate bags (25kg = 1 bag)
+  // Helper function to calculate bags (30kg = 1 bag)
   static calculateBags(quantity) {
     if (typeof quantity !== 'number') return '0'
-    const bags = quantity / 25
-    return bags.toFixed(2)
+    const bags = quantity / 30
+    return Math.ceil(bags).toString()
   }
 
   // Invoice PDF Generation

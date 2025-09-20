@@ -4,8 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { SaleService, Sale, SaleCreateData, SaleItem } from '../../services/sale'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
-import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Edit, Trash2, ChevronLeft, ChevronRight, Eye, Loader2 } from 'lucide-react'
 import BasePDFGenerator from '../../services/basePDFGenerator'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 interface SaleFormData {
   invoiceNo: string
@@ -33,6 +36,12 @@ const SalesPage: React.FC = () => {
   const [itemSearchQuery, setItemSearchQuery] = useState('')
   const [filteredItems, setFilteredItems] = useState<Item[]>([])
   const [showItemSearchBar, setShowItemSearchBar] = useState(false)
+  
+  // Transaction detail states
+  const [isTransactionDetailOpen, setIsTransactionDetailOpen] = useState(false)
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
+  const [saleDetail, setSaleDetail] = useState<Sale | null>(null)
+  const [loadingSaleDetail, setLoadingSaleDetail] = useState(false)
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -235,6 +244,26 @@ const SalesPage: React.FC = () => {
       date: formattedDate
     })
     setShowForm(true)
+  }
+
+  const handleViewSale = async (sale: Sale) => {
+    try {
+      setLoadingSaleDetail(true)
+      setSelectedSale(sale)
+      
+      const detailResponse = await SaleService.getSaleById(sale.id!)
+      
+      if (detailResponse.success) {
+        setSaleDetail(detailResponse.data)
+        setIsTransactionDetailOpen(true)
+      } else {
+        setError(detailResponse.error || 'Failed to load sale details')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load sale details')
+    } finally {
+      setLoadingSaleDetail(false)
+    }
   }
 
   const resetForm = () => {
@@ -474,7 +503,11 @@ const SalesPage: React.FC = () => {
           </div>
         ) : (
           currentSales.map((sale) => (
-            <div key={sale.id} className="border rounded-lg hover:bg-gray-50 transition-colors">
+            <div 
+              key={sale.id} 
+              className="border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={() => handleViewSale(sale)}
+            >
               {/* Desktop Layout */}
               <div className="hidden md:flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
@@ -515,14 +548,30 @@ const SalesPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleEditSale(sale)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewSale(sale)
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                      title="View Sale Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditSale(sale)
+                      }}
                       className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
                       title="Edit Sale"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteSale(sale.id!)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteSale(sale.id!)
+                      }}
                       className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
                       title="Delete Sale"
                     >
@@ -564,14 +613,30 @@ const SalesPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleEditSale(sale)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewSale(sale)
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                      title="View Sale Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditSale(sale)
+                      }}
                       className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
                       title="Edit Sale"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteSale(sale.id!)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteSale(sale.id!)
+                      }}
                       className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
                       title="Delete Sale"
                     >
@@ -798,7 +863,7 @@ const SalesPage: React.FC = () => {
                                 <h4 className="font-semibold text-gray-900">{item.productName}</h4>
                                 <p className="text-sm text-gray-600">Category: {item.category}</p>
                                 <p className="text-sm text-gray-500">
-                                  Stock: {item.openingStock} bags
+                                  Stock: {Math.ceil(item.openingStock)} bags
                                   {item.lowStockAlert && item.openingStock <= item.lowStockAlert && (
                                     <span className="text-red-500 ml-2">⚠️ Low Stock</span>
                                   )}
@@ -924,6 +989,99 @@ const SalesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Sale Detail Dialog */}
+      <Dialog open={isTransactionDetailOpen} onOpenChange={setIsTransactionDetailOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sale Details</DialogTitle>
+            <DialogDescription>
+              View complete sale information.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingSaleDetail ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading sale details...</span>
+            </div>
+          ) : saleDetail && selectedSale ? (
+            <div className="space-y-6">
+              {/* Sale Header */}
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Invoice #{saleDetail.invoiceNo}</h3>
+                    <p className="text-sm text-muted-foreground">{saleDetail.date}</p>
+                  </div>
+                </div>
+                <Badge className="bg-green-100 text-green-800">Sale</Badge>
+              </div>
+
+              {/* Party Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Party Information</h4>
+                <div className="grid gap-3 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span className="font-medium">{saleDetail.partyName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span>{saleDetail.phoneNumber}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Items</h4>
+                <div className="space-y-2">
+                  {saleDetail.items.map((item: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium">{item.itemName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Qty: {item.quantity.toLocaleString()} kg | Rate: ₹{item.rate.toLocaleString()}
+                        </p>
+                      </div>
+                      <p className="font-semibold">₹{item.total.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Amount */}
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                <span className="text-lg font-semibold">Total Amount:</span>
+                <span className="text-xl font-bold text-green-600">
+                  ₹{saleDetail.totalAmount.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <svg className="h-12 w-12 text-muted-foreground mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-muted-foreground">Failed to load sale details</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

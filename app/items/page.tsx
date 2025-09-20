@@ -49,7 +49,19 @@ export default function ItemsPage() {
       if (categoryFilter !== "all") filters.category = categoryFilter;
       
       const response = await itemService.getItems(filters);
-      setItems(response.data || []);
+      const allItems = response.data || [];
+      
+      // Sort items: Bardana first, then rest in A-Z order
+      const sortedItems = allItems.sort((a, b) => {
+        // Bardana (universal item) always comes first
+        if (a.isUniversal && a.productName === 'Bardana') return -1;
+        if (b.isUniversal && b.productName === 'Bardana') return 1;
+        
+        // For all other items, sort alphabetically by product name
+        return a.productName.localeCompare(b.productName);
+      });
+      
+      setItems(sortedItems);
     } catch (err: any) {
       setError(err.message || "Failed to load items");
       toast.error("Failed to load items");
@@ -189,6 +201,11 @@ export default function ItemsPage() {
     if (item.openingStock === 0) return "Out of Stock";
     if (item.openingStock <= item.lowStockAlert) return "Low Stock";
     return "In Stock";
+  };
+
+  // Helper function to round up bags value
+  const roundUpBags = (value: number) => {
+    return Math.ceil(value);
   };
 
   return (
@@ -367,7 +384,7 @@ export default function ItemsPage() {
                     <div className="md:hidden flex items-center gap-3 flex-1">
                       <div className="flex-1">
                         <h3 className="font-bold text-base text-amber-800">{item.productName}</h3>
-                        <p className="text-sm text-amber-700 font-medium">{item.openingStock} bags</p>
+                        <p className="text-sm text-amber-700 font-medium">{roundUpBags(item.openingStock)} bags</p>
                       </div>
                     </div>
 
@@ -377,7 +394,7 @@ export default function ItemsPage() {
                         {getStockStatusText(item)}
                       </Badge>
                       <Badge variant="outline" className="border-amber-300 text-amber-700">
-                        {item.openingStock} bags
+                        {roundUpBags(item.openingStock)} bags
                       </Badge>
                       <div className="flex items-center gap-1">
                         <Button
@@ -429,7 +446,7 @@ export default function ItemsPage() {
                     <div className="md:hidden flex items-center gap-3 flex-1">
                       <div className="flex-1">
                         <h3 className="font-medium text-sm">{item.productName}</h3>
-                        <p className="text-xs text-muted-foreground">{item.openingStock} bags</p>
+                        <p className="text-xs text-muted-foreground">{roundUpBags(item.openingStock)} bags</p>
                       </div>
                     </div>
 
@@ -438,7 +455,7 @@ export default function ItemsPage() {
                       <Badge variant={getStockStatusBadge(item)}>
                         {getStockStatusText(item)}
                       </Badge>
-                      <Badge variant="outline">{item.openingStock} bags</Badge>
+                      <Badge variant="outline">{roundUpBags(item.openingStock)} bags</Badge>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"

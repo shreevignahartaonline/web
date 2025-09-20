@@ -72,8 +72,12 @@ export default function Dashboard() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isTransactionDetailOpen, setIsTransactionDetailOpen] = useState(false)
   const [selectedParty, setSelectedParty] = useState<Party | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
+  const [transactionDetail, setTransactionDetail] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingTransactionDetail, setLoadingTransactionDetail] = useState(false)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -264,6 +268,40 @@ export default function Dashboard() {
   const handleViewParty = (party: Party) => {
     setSelectedParty(party)
     setIsViewDialogOpen(true)
+  }
+
+  const handleViewTransaction = async (transaction: any) => {
+    try {
+      setLoadingTransactionDetail(true)
+      setSelectedTransaction(transaction)
+      
+      let detailResponse
+      switch (transaction.type) {
+        case 'sale':
+          detailResponse = await SaleService.getSaleById(transaction.id)
+          break
+        case 'purchase':
+          detailResponse = await PurchaseService.getPurchase(transaction.id)
+          break
+        case 'payment-in':
+        case 'payment-out':
+          detailResponse = await PaymentService.getPaymentById(transaction.id)
+          break
+        default:
+          throw new Error('Unknown transaction type')
+      }
+      
+      if (detailResponse.success) {
+        setTransactionDetail(detailResponse.data)
+        setIsTransactionDetailOpen(true)
+      } else {
+        setError(detailResponse.error || 'Failed to load transaction details')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load transaction details')
+    } finally {
+      setLoadingTransactionDetail(false)
+    }
   }
 
   const handleDeleteParty = async (party: Party) => {
@@ -482,7 +520,11 @@ export default function Dashboard() {
                   const IconComponent = typeInfo.icon
                   
                   return (
-                    <Card key={transaction.id} className="hover:shadow-md transition-shadow">
+                    <Card 
+                      key={transaction.id} 
+                      className="hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleViewTransaction(transaction)}
+                    >
                       <CardContent className="p-4">
                         <div className="space-y-3">
                           {/* Row 1: Transaction ID and Badge */}
@@ -1032,6 +1074,148 @@ export default function Dashboard() {
             }}>
               <Edit className="mr-2 h-4 w-4" />
               Edit Party
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction Detail Dialog */}
+      <Dialog open={isTransactionDetailOpen} onOpenChange={setIsTransactionDetailOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogDescription>
+              View complete transaction information.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingTransactionDetail ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading transaction details...</span>
+            </div>
+          ) : transactionDetail && selectedTransaction ? (
+            <div className="space-y-6">
+              {/* Transaction Header */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedTransaction.type === 'sale' 
+                      ? 'bg-green-100' 
+                      : selectedTransaction.type === 'purchase'
+                      ? 'bg-blue-100'
+                      : selectedTransaction.type === 'payment-in'
+                      ? 'bg-emerald-100'
+                      : 'bg-red-100'
+                  }`}>
+                    {selectedTransaction.type === 'sale' && <ShoppingCart className="h-5 w-5 text-green-600" />}
+                    {selectedTransaction.type === 'purchase' && <Package className="h-5 w-5 text-blue-600" />}
+                    {(selectedTransaction.type === 'payment-in' || selectedTransaction.type === 'payment-out') && <DollarSign className="h-5 w-5 text-emerald-600" />}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">
+                      {selectedTransaction.type === 'sale' 
+                        ? `Invoice #${transactionDetail.invoiceNo}`
+                        : selectedTransaction.type === 'purchase'
+                        ? `Bill #${transactionDetail.billNo}`
+                        : `${selectedTransaction.type === 'payment-in' ? 'Receipt' : 'Voucher'} #${transactionDetail.paymentNo}`
+                      }
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{transactionDetail.date}</p>
+                  </div>
+                </div>
+                <Badge 
+                  className={`${
+                    selectedTransaction.type === 'sale' 
+                      ? 'bg-green-100 text-green-800' 
+                      : selectedTransaction.type === 'purchase'
+                      ? 'bg-blue-100 text-blue-800'
+                      : selectedTransaction.type === 'payment-in'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {selectedTransaction.type === 'sale' 
+                    ? 'Sale' 
+                    : selectedTransaction.type === 'purchase'
+                    ? 'Purchase'
+                    : selectedTransaction.type === 'payment-in'
+                    ? 'Payment In'
+                    : 'Payment Out'
+                  }
+                </Badge>
+              </div>
+
+              {/* Party Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Party Information</h4>
+                <div className="grid gap-3 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{transactionDetail.partyName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{transactionDetail.phoneNumber}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items (for Sales and Purchases) */}
+              {(selectedTransaction.type === 'sale' || selectedTransaction.type === 'purchase') && transactionDetail.items && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg">Items</h4>
+                  <div className="space-y-2">
+                    {transactionDetail.items.map((item: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium">{item.itemName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Qty: {item.quantity.toLocaleString()} kg | Rate: ₹{item.rate.toLocaleString()}
+                          </p>
+                        </div>
+                        <p className="font-semibold">₹{item.total.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Information (for Payments) */}
+              {(selectedTransaction.type === 'payment-in' || selectedTransaction.type === 'payment-out') && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg">Payment Information</h4>
+                  <div className="grid gap-3 p-4 border rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="font-semibold">₹{transactionDetail.amount.toLocaleString()}</span>
+                    </div>
+                    {transactionDetail.totalAmount && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Total Amount:</span>
+                        <span className="font-semibold">₹{transactionDetail.totalAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Total Amount */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <span className="text-lg font-semibold">Total Amount:</span>
+                <span className="text-xl font-bold">
+                  ₹{(transactionDetail.totalAmount || transactionDetail.amount).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Failed to load transaction details</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

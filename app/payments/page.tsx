@@ -22,7 +22,8 @@ import {
   Phone,
   FileText,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye
 } from "lucide-react"
 import { PaymentService, Payment, PaymentCreateData, PaymentFilters } from "@/services/payment"
 import { partyService, Party } from "@/services/party"
@@ -50,6 +51,12 @@ export default function PaymentsPage() {
   const [selectedParty, setSelectedParty] = useState<Party | null>(null)
   const [showPartyDropdown, setShowPartyDropdown] = useState(false)
   const [filteredParties, setFilteredParties] = useState<Party[]>([])
+
+  // Transaction detail states
+  const [isTransactionDetailOpen, setIsTransactionDetailOpen] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [paymentDetail, setPaymentDetail] = useState<Payment | null>(null)
+  const [loadingPaymentDetail, setLoadingPaymentDetail] = useState(false)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -228,6 +235,28 @@ export default function PaymentsPage() {
     setSelectedParty(party || null)
     
     setIsEditDialogOpen(true)
+  }
+
+  const handleViewPayment = async (payment: Payment) => {
+    try {
+      setLoadingPaymentDetail(true)
+      setSelectedPayment(payment)
+      
+      const detailResponse = await PaymentService.getPaymentById(payment.id!)
+      
+      if (detailResponse.success) {
+        setPaymentDetail(detailResponse.data)
+        setIsTransactionDetailOpen(true)
+      } else {
+        setError(detailResponse.error || 'Failed to load payment details')
+        toast.error(detailResponse.error || 'Failed to load payment details')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load payment details')
+      toast.error(err.message || 'Failed to load payment details')
+    } finally {
+      setLoadingPaymentDetail(false)
+    }
   }
 
   // Party handling functions (simplified like sales page)
@@ -504,7 +533,11 @@ export default function PaymentsPage() {
             <div className="space-y-4">
               {currentPayments.map((payment) => {
                 return (
-                  <div key={payment.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                  <div 
+                    key={payment.id} 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
+                    onClick={() => handleViewPayment(payment)}
+                  >
                     {/* Desktop Layout */}
                     <div className="hidden md:flex items-center gap-3">
                       <div>
@@ -539,10 +572,34 @@ export default function PaymentsPage() {
                         {PaymentService.formatCurrency(payment.amount)}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(payment)}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleViewPayment(payment)
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openEditDialog(payment)
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeletePayment(payment)}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeletePayment(payment)
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -734,6 +791,110 @@ export default function PaymentsPage() {
             <Button onClick={handleEditPayment} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Detail Dialog */}
+      <Dialog open={isTransactionDetailOpen} onOpenChange={setIsTransactionDetailOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+            <DialogDescription>
+              View complete payment information.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingPaymentDetail ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading payment details...</span>
+            </div>
+          ) : paymentDetail && selectedPayment ? (
+            <div className="space-y-6">
+              {/* Payment Header */}
+              <div className={`flex items-center justify-between p-4 rounded-lg ${
+                paymentDetail.type === 'payment-in' ? 'bg-emerald-50' : 'bg-red-50'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    paymentDetail.type === 'payment-in' ? 'bg-emerald-100' : 'bg-red-100'
+                  }`}>
+                    <svg className={`h-5 w-5 ${
+                      paymentDetail.type === 'payment-in' ? 'text-emerald-600' : 'text-red-600'
+                    }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">
+                      {paymentDetail.type === 'payment-in' ? 'Receipt' : 'Voucher'} #{paymentDetail.paymentNo}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{paymentDetail.date}</p>
+                  </div>
+                </div>
+                <Badge className={`${
+                  paymentDetail.type === 'payment-in' 
+                    ? 'bg-emerald-100 text-emerald-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {paymentDetail.type === 'payment-in' ? 'Payment In' : 'Payment Out'}
+                </Badge>
+              </div>
+
+              {/* Party Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Party Information</h4>
+                <div className="grid gap-3 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{paymentDetail.partyName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{paymentDetail.phoneNumber}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg">Payment Information</h4>
+                <div className="grid gap-3 p-4 border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="font-semibold">₹{paymentDetail.amount.toLocaleString()}</span>
+                  </div>
+                  {paymentDetail.totalAmount && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Total Amount:</span>
+                      <span className="font-semibold">₹{paymentDetail.totalAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Total Amount */}
+              <div className={`flex items-center justify-between p-4 rounded-lg ${
+                paymentDetail.type === 'payment-in' ? 'bg-emerald-50' : 'bg-red-50'
+              }`}>
+                <span className="text-lg font-semibold">Total Amount:</span>
+                <span className={`text-xl font-bold ${
+                  paymentDetail.type === 'payment-in' ? 'text-emerald-600' : 'text-red-600'
+                }`}>
+                  ₹{(paymentDetail.totalAmount || paymentDetail.amount).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Failed to load payment details</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
