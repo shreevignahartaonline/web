@@ -170,7 +170,7 @@ const SalesPage: React.FC = () => {
       try {
         const whatsappResult = await SaleService.generateAndSendPDFViaWhatsApp(response.data)
         if (whatsappResult) {
-          setSuccess('PDF Generated and Sent Successfully!')
+          setSuccess('Invoice created and sent to party via WhatsApp!')
         } else {
           setSuccess('Sale created successfully!')
         }

@@ -339,13 +339,11 @@ export class BasePDFGenerator {
       )
 
       const pdfBlob = await pdf(<InvoiceDocument />).toBlob()
-      const pdfUrl = URL.createObjectURL(pdfBlob)
       const fileName = `invoice-${invoice.invoiceNo}-${Date.now()}.pdf`
 
       return {
         success: true,
         pdfBlob,
-        pdfUrl,
         fileName
       }
     } catch (error) {
@@ -471,13 +469,11 @@ export class BasePDFGenerator {
       )
 
       const pdfBlob = await pdf(<PurchaseBillDocument />).toBlob()
-      const pdfUrl = URL.createObjectURL(pdfBlob)
       const fileName = `purchase-bill-${bill.billNo}-${Date.now()}.pdf`
 
       return {
         success: true,
         pdfBlob,
-        pdfUrl,
         fileName
       }
     } catch (error) {
@@ -491,66 +487,12 @@ export class BasePDFGenerator {
 
 
 
-  // Download PDF helper method
-  static downloadPDF(pdfBlob, fileName) {
-    const url = URL.createObjectURL(pdfBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
-  // Detect if the current device is mobile
-  static isMobileDevice() {
-    if (typeof window === 'undefined') return false
-    
-    // Check user agent for mobile indicators
-    const userAgent = navigator.userAgent.toLowerCase()
-    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
-    
-    // Check for mobile keywords in user agent
-    const hasMobileKeyword = mobileKeywords.some(keyword => userAgent.includes(keyword))
-    
-    // Check screen size (mobile devices typically have smaller screens)
-    const isSmallScreen = window.innerWidth <= 768
-    
-    // Check for touch capability
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    
-    return hasMobileKeyword || (isSmallScreen && hasTouch)
-  }
-
-  // Download PDF directly (works on all devices - mobile and desktop)
-  static downloadPDFDirectly(pdfUrl, fileName = 'document.pdf') {
-    try {
-      console.log('Downloading PDF:', pdfUrl)
-      
-      // Always download the PDF directly - works on mobile and desktop
-      const link = document.createElement('a')
-      link.href = pdfUrl
-      link.download = fileName
-      link.style.display = 'none'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      console.log('PDF downloaded successfully')
-      
-    } catch (error) {
-      console.error('Error downloading PDF:', error)
-    }
-  }
-
-  // Legacy method name for backward compatibility - now just downloads
-  static openPDFInNewTab(pdfUrl, fileName = 'document.pdf') {
-    return this.downloadPDFDirectly(pdfUrl, fileName)
-  }
 
   // Simplified method: Generate PDF and send via WhatsApp only (no opening)
   static async generateAndSendPDFOnly(documentData, documentType, partyPhoneNumber, customMessage = '') {
     try {
+      console.log('🚀 Starting PDF generation and WhatsApp send...', { documentType, partyPhoneNumber })
+      
       // Generate PDF based on document type
       let pdfResult
       switch (documentType) {
@@ -564,7 +506,10 @@ export class BasePDFGenerator {
           throw new Error(`Unsupported document type: ${documentType}`)
       }
 
+      console.log('📄 PDF generation result:', pdfResult)
+
       if (!pdfResult.success) {
+        console.error('❌ PDF generation failed:', pdfResult.error)
         return {
           success: false,
           error: pdfResult.error || 'Failed to generate PDF'
@@ -581,158 +526,19 @@ export class BasePDFGenerator {
         ...this.extractDocumentSpecificData(documentData, documentType)
       }
 
+      console.log('📱 WhatsApp data prepared:', whatsappData)
+
       // Upload and send via WhatsApp
       const result = await UploadService.uploadAndSendPDF(pdfResult.pdfBlob, pdfResult.fileName, whatsappData)
+      
+      console.log('📤 Upload and send result:', result)
+      
       return result
     } catch (error) {
-      console.error('Error in generateAndSendPDFOnly:', error)
+      console.error('❌ Error in generateAndSendPDFOnly:', error)
       return {
         success: false,
         error: error.message || 'Failed to generate and send PDF'
-      }
-    }
-  }
-
-  // Convenience methods for generating and downloading
-  static async generateAndDownloadInvoice(invoice) {
-    const result = await this.generateInvoicePDF(invoice)
-    if (result.success && result.pdfBlob) {
-      this.downloadPDF(result.pdfBlob, `Invoice_${invoice.invoiceNo}_${Date.now()}.pdf`)
-      return true
-    }
-    return false
-  }
-
-  static async generateAndDownloadPurchaseBill(bill) {
-    const result = await this.generatePurchaseBillPDF(bill)
-    if (result.success && result.pdfBlob) {
-      this.downloadPDF(result.pdfBlob, `PurchaseBill_${bill.billNo}_${Date.now()}.pdf`)
-      return true
-    }
-    return false
-  }
-
-
-
-  // Convenience methods for generating and downloading PDFs (works on mobile and desktop)
-  static async generateAndOpenInvoice(invoice) {
-    const result = await this.generateInvoicePDF(invoice)
-    if (result.success) {
-      if (result.pdfUrl) {
-        this.downloadPDFDirectly(result.pdfUrl, `Invoice_${invoice.invoiceNo}_${Date.now()}.pdf`)
-      } else {
-        console.log('PDF generated successfully')
-      }
-      return true
-    }
-    return false
-  }
-
-  static async generateAndOpenPurchaseBill(bill) {
-    const result = await this.generatePurchaseBillPDF(bill)
-    if (result.success) {
-      if (result.pdfUrl) {
-        this.downloadPDFDirectly(result.pdfUrl, `PurchaseBill_${bill.billNo}_${Date.now()}.pdf`)
-      } else {
-        console.log('PDF generated successfully')
-      }
-      return true
-    }
-    return false
-  }
-
-
-
-  // ===== NEW UPLOAD AND WHATSAPP METHODS =====
-
-  /**
-   * Generate PDF and upload to backend
-   * @param documentData - Document data
-   * @param documentType - Type of document
-   * @returns Promise<UploadResult>
-   */
-  static async generateAndUploadPDF(documentData, documentType) {
-    try {
-      // Generate PDF based on document type
-      let pdfResult
-      switch (documentType) {
-        case 'invoice':
-          pdfResult = await this.generateInvoicePDF(documentData)
-          break
-        case 'purchase-bill':
-          pdfResult = await this.generatePurchaseBillPDF(documentData)
-          break
-        default:
-          throw new Error(`Unsupported document type: ${documentType}`)
-      }
-
-      if (!pdfResult.success) {
-        return {
-          success: false,
-          error: pdfResult.error || 'Failed to generate PDF'
-        }
-      }
-
-      // Upload PDF to backend
-      const uploadResult = await UploadService.uploadPDF(pdfResult.pdfBlob, pdfResult.fileName)
-      return uploadResult
-    } catch (error) {
-      console.error('Error in generateAndUploadPDF:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to generate and upload PDF'
-      }
-    }
-  }
-
-  /**
-   * Generate PDF, upload, and send via WhatsApp
-   * @param documentData - Document data
-   * @param documentType - Type of document
-   * @param partyPhoneNumber - Party's phone number
-   * @param customMessage - Optional custom message
-   * @returns Promise<WhatsAppResult>
-   */
-  static async generateUploadAndSendPDF(documentData, documentType, partyPhoneNumber, customMessage = '') {
-    try {
-      // Generate PDF based on document type
-      let pdfResult
-      switch (documentType) {
-        case 'invoice':
-          pdfResult = await this.generateInvoicePDF(documentData)
-          break
-        case 'purchase-bill':
-          pdfResult = await this.generatePurchaseBillPDF(documentData)
-          break
-        default:
-          throw new Error(`Unsupported document type: ${documentType}`)
-      }
-
-      if (!pdfResult.success) {
-        return {
-          success: false,
-          error: pdfResult.error || 'Failed to generate PDF'
-        }
-      }
-
-      // Prepare WhatsApp data
-      const whatsappData = {
-        phoneNumber: partyPhoneNumber,
-        documentUrl: '', // Will be set after upload
-        fileName: pdfResult.fileName,
-        message: customMessage || UploadService.generateDefaultMessage(documentType, pdfResult.fileName),
-        documentType: documentType,
-        ...this.extractDocumentSpecificData(documentData, documentType)
-      }
-
-      // Upload and send via WhatsApp
-      const result = await UploadService.uploadAndSendPDF(pdfResult.pdfBlob, pdfResult.fileName, whatsappData)
-      return result
-    } catch (error) {
-      console.error('Error in generateUploadAndSendPDF:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to generate, upload, and send PDF'
       }
     }
   }

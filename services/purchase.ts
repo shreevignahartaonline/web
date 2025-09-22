@@ -222,9 +222,9 @@ export class PurchaseService {
           
           console.log('Purchase bill data for PDF:', billData)
           
-          // Generate and download PDF directly (works on mobile and desktop)
-          await BasePDFGenerator.generateAndOpenPurchaseBill(billData)
-          console.log('Purchase bill PDF generated and opened successfully!')
+          // Generate and send PDF via WhatsApp
+          await BasePDFGenerator.generateAndSendPDFOnly(billData, 'purchase-bill', result.data.phoneNumber)
+          console.log('Purchase bill PDF generated and sent via WhatsApp successfully!')
         } catch (pdfError) {
           console.error('Error generating purchase bill PDF:', pdfError)
           // Don't throw error - PDF generation failure shouldn't break the purchase creation
@@ -386,7 +386,8 @@ export class PurchaseService {
         date: purchase.date
       }
       
-      return await BasePDFGenerator.generateAndOpenPurchaseBill(billData)
+      const result = await BasePDFGenerator.generateAndSendPDFOnly(billData, 'purchase-bill', purchase.phoneNumber)
+      return result.success
     } catch (error) {
       console.error('Error generating PDF for purchase:', error)
       return false

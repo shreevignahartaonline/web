@@ -141,7 +141,7 @@ export class SaleService {
       
       const result = await handleResponse(response)
       
-      // Generate and open PDF after successful creation
+      // Generate and send PDF via WhatsApp after successful creation
       if (result.success && result.data) {
         try {
           console.log('Creating invoice data for PDF generation...')
@@ -160,9 +160,16 @@ export class SaleService {
           
           console.log('Invoice data for PDF:', invoiceData)
           
-          // Generate and download PDF directly (works on mobile and desktop)
-          await BasePDFGenerator.generateAndOpenInvoice(invoiceData)
-          console.log('Invoice PDF generated and downloaded successfully!')
+          // Generate and send PDF via WhatsApp
+          console.log('🔄 Calling generateAndSendPDFOnly...')
+          const pdfResult = await BasePDFGenerator.generateAndSendPDFOnly(invoiceData, 'invoice', result.data.phoneNumber)
+          console.log('📤 PDF generation result:', pdfResult)
+          
+          if (pdfResult.success) {
+            console.log('✅ Invoice PDF generated and sent via WhatsApp successfully!')
+          } else {
+            console.error('❌ Invoice PDF generation failed:', pdfResult.error)
+          }
         } catch (pdfError) {
           console.error('Error generating invoice PDF:', pdfError)
           // Don't throw error - PDF generation failure shouldn't break the sale creation

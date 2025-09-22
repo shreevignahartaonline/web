@@ -166,7 +166,7 @@ const PurchasePage: React.FC = () => {
       try {
         const whatsappResult = await PurchaseService.generateAndSendPDFViaWhatsApp(response.data)
         if (whatsappResult) {
-          setSuccess('PDF Generated and Sent Successfully!')
+          setSuccess('Purchase bill created and sent to party via WhatsApp!')
         } else {
           setSuccess('Purchase created successfully!')
         }
