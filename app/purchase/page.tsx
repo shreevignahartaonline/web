@@ -45,6 +45,11 @@ const PurchasePage: React.FC = () => {
   const [filteredItems, setFilteredItems] = useState<Item[]>([])
   const [showItemSearchBar, setShowItemSearchBar] = useState(false)
   
+  // Bulk selection states
+  const [selectedPurchases, setSelectedPurchases] = useState<string[]>([])
+  const [isSelectMode, setIsSelectMode] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  
   // Transaction detail states
   const [isTransactionDetailOpen, setIsTransactionDetailOpen] = useState(false)
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null)
@@ -234,6 +239,50 @@ const PurchasePage: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete purchase')
     }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedPurchases.length === 0) return
+    
+    const confirmMessage = `Are you sure you want to delete ${selectedPurchases.length} purchase(s)? This action cannot be undone.`
+    if (!confirm(confirmMessage)) return
+    
+    try {
+      setIsDeleting(true)
+      const result = await PurchaseService.deletePurchases(selectedPurchases)
+      
+      if (result.success) {
+        setPurchases(prev => prev.filter(purchase => !selectedPurchases.includes(purchase.id!)))
+        setSuccess(`${result.deletedCount} purchases deleted successfully!`)
+        setSelectedPurchases([])
+        setIsSelectMode(false)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete purchases')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleSelectPurchase = (purchaseId: string) => {
+    setSelectedPurchases(prev => 
+      prev.includes(purchaseId) 
+        ? prev.filter(id => id !== purchaseId)
+        : [...prev, purchaseId]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedPurchases.length === currentPurchases.length) {
+      setSelectedPurchases([])
+    } else {
+      setSelectedPurchases(currentPurchases.map(purchase => purchase.id!))
+    }
+  }
+
+  const toggleSelectMode = () => {
+    setIsSelectMode(!isSelectMode)
+    setSelectedPurchases([])
   }
 
   const handleEditPurchase = (purchase: Purchase) => {
@@ -465,16 +514,54 @@ const PurchasePage: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-xl md:text-3xl font-bold text-gray-900">Purchase Management</h1>
-        <button
-          onClick={() => {
-            resetForm()
-            setShowForm(true)
-          }}
-          className="bg-blue-600 text-white px-3 py-1.5 md:px-6 md:py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base"
-        >
-          <span className="hidden sm:inline">Create New Purchase</span>
-          <span className="sm:hidden">New Purchase</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {isSelectMode && (
+            <>
+              <button
+                onClick={handleSelectAll}
+                className="bg-gray-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm md:text-base"
+              >
+                {selectedPurchases.length === currentPurchases.length ? 'Deselect All' : 'Select All'}
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedPurchases.length === 0 || isDeleting}
+                className="bg-red-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base flex items-center gap-2"
+              >
+                {isDeleting && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                Delete ({selectedPurchases.length})
+              </button>
+              <button
+                onClick={toggleSelectMode}
+                className="bg-gray-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm md:text-base"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+          {!isSelectMode && (
+            <>
+              <button
+                onClick={toggleSelectMode}
+                className="bg-gray-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm md:text-base"
+              >
+                Select
+              </button>
+              <button
+                onClick={() => {
+                  resetForm()
+                  setShowForm(true)
+                }}
+                className="bg-blue-600 text-white px-3 py-1.5 md:px-6 md:py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base"
+              >
+                <span className="hidden sm:inline">Create New Purchase</span>
+                <span className="sm:hidden">New Purchase</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Success/Error Messages */}
@@ -519,12 +606,29 @@ const PurchasePage: React.FC = () => {
           currentPurchases.map((purchase) => (
             <div 
               key={purchase.id} 
-              className="border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              onClick={() => handleViewPurchase(purchase)}
+              className={`border rounded-lg hover:bg-gray-50 transition-colors ${
+                isSelectMode ? 'cursor-pointer' : 'cursor-pointer'
+              } ${selectedPurchases.includes(purchase.id!) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+              onClick={() => {
+                if (isSelectMode) {
+                  handleSelectPurchase(purchase.id!)
+                } else {
+                  handleViewPurchase(purchase)
+                }
+              }}
             >
               {/* Desktop Layout */}
               <div className="hidden md:flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
+                  {isSelectMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedPurchases.includes(purchase.id!)}
+                      onChange={() => handleSelectPurchase(purchase.id!)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                     <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -560,38 +664,40 @@ const PurchasePage: React.FC = () => {
                       {PurchaseService.formatCurrency(purchase.totalAmount)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleViewPurchase(purchase)
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-                      title="View Purchase Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEditPurchase(purchase)
-                      }}
-                      className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
-                      title="Edit Purchase"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeletePurchase(purchase.id!)
-                      }}
-                      className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
-                      title="Delete Purchase"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {!isSelectMode && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewPurchase(purchase)
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                        title="View Purchase Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditPurchase(purchase)
+                        }}
+                        className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
+                        title="Edit Purchase"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeletePurchase(purchase.id!)
+                        }}
+                        className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                        title="Delete Purchase"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -599,6 +705,15 @@ const PurchasePage: React.FC = () => {
               <div className="md:hidden p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
+                    {isSelectMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedPurchases.includes(purchase.id!)}
+                        onChange={() => handleSelectPurchase(purchase.id!)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                       <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -625,38 +740,40 @@ const PurchasePage: React.FC = () => {
                       {purchase.date}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleViewPurchase(purchase)
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-                      title="View Purchase Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEditPurchase(purchase)
-                      }}
-                      className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
-                      title="Edit Purchase"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeletePurchase(purchase.id!)
-                      }}
-                      className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
-                      title="Delete Purchase"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {!isSelectMode && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewPurchase(purchase)
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                        title="View Purchase Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditPurchase(purchase)
+                        }}
+                        className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600"
+                        title="Edit Purchase"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeletePurchase(purchase.id!)
+                        }}
+                        className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                        title="Delete Purchase"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

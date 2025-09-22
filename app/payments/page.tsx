@@ -28,7 +28,6 @@ import {
 import { PaymentService, Payment, PaymentCreateData, PaymentFilters } from "@/services/payment"
 import { partyService, Party } from "@/services/party"
 import { toast } from "sonner"
-import BasePDFGenerator from "@/services/basePDFGenerator"
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -139,18 +138,7 @@ export default function PaymentsPage() {
       setIsSubmitting(true)
       const response = await PaymentService.createPayment(formData)
       
-      // Send PDF via WhatsApp
-      try {
-        const whatsappResult = await PaymentService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult) {
-          toast.success("PDF Generated and Sent Successfully!")
-        } else {
-          toast.success("Payment created successfully!")
-        }
-      } catch (whatsappError) {
-        console.error('WhatsApp send error:', whatsappError)
-        toast.success("Payment created successfully!")
-      }
+      toast.success("Payment created successfully!")
       
       setIsAddDialogOpen(false)
       resetForm()

@@ -489,261 +489,7 @@ export class BasePDFGenerator {
     }
   }
 
-  // Payment In PDF Generation
-  static async generatePaymentInPDF(payment) {
-    try {
-      const companyDetails = await this.getCompanyDetails()
-      const currentDate = new Date().toLocaleDateString('en-IN')
-      const paymentDate = payment.date || currentDate
-      
-      // Fetch the actual party balance from the database
-      let partyBalance = 0
-      try {
-        const partiesResponse = await partyService.getParties()
-        if (partiesResponse.success && partiesResponse.data) {
-          const party = partiesResponse.data.find(p => 
-            p.name === payment.partyName && p.phoneNumber === payment.phoneNumber
-          )
-          if (party) {
-            partyBalance = party.balance
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching party balance:', error)
-        // Fallback to calculated balance if party fetch fails
-        partyBalance = payment.totalAmount + payment.received
-      }
-      
-      const PaymentInDocument = () => (
-        <Document>
-          <Page size="A4" style={styles.page}>
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: '#059669' }]}>
-              <Text style={styles.companyName}>
-                {companyDetails?.businessName || 'Your Business Name'}
-              </Text>
-              <Text style={styles.title}>PAYMENT RECEIPT</Text>
-              <Text style={styles.number}>Receipt #{payment.paymentNo}</Text>
-            </View>
 
-            {/* Content */}
-            <View style={styles.content}>
-              {/* Info Section */}
-              <View style={styles.infoSection}>
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: '#059669', borderBottom: '2px solid #059669' }]}>Received From</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Customer Name:</Text>
-                    <Text style={styles.infoValue}>{payment.partyName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone Number:</Text>
-                    <Text style={styles.infoValue}>{payment.phoneNumber}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Date:</Text>
-                    <Text style={styles.infoValue}>{paymentDate}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: '#059669', borderBottom: '2px solid #059669' }]}>Business Details</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.businessName || 'Your Business Name'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Payment Details */}
-              <View style={[styles.paymentDetails, { backgroundColor: '#f0fdf4', border: '2px solid #059669' }]}>
-                <Text style={[styles.paymentDetailsTitle, { color: '#059669' }]}>Payment Summary</Text>
-                
-                <View style={[styles.paymentRow, { borderBottom: '1px solid #059669' }]}>
-                  <Text style={styles.paymentLabel}>Outstanding Balance:</Text>
-                  <Text style={[styles.paymentAmount, { color: '#059669' }]}>{this.formatNumber(partyBalance + payment.received)}</Text>
-                </View>
-                
-                <View style={[styles.paymentRow, { borderBottom: '1px solid #059669' }]}>
-                  <Text style={styles.paymentLabel}>Amount Received:</Text>
-                  <Text style={[styles.paymentAmount, { color: '#059669' }]}>{this.formatNumber(payment.received)}</Text>
-                </View>
-                
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Remaining Balance:</Text>
-                  <Text style={[styles.paymentAmount, { color: '#059669' }]}>{this.formatNumber(partyBalance)}</Text>
-                </View>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.footer}>
-                <View style={styles.signatureSection}>
-                  <Text style={styles.signatureTitle}>Authorized Signature</Text>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureName}>
-                    {companyDetails?.businessName || 'Authorized Person'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Page>
-        </Document>
-      )
-
-      const pdfBlob = await pdf(<PaymentInDocument />).toBlob()
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-      const fileName = `payment-receipt-${payment.paymentNo}-${Date.now()}.pdf`
-
-      return {
-        success: true,
-        pdfBlob,
-        pdfUrl,
-        fileName
-      }
-    } catch (error) {
-      console.error('Error generating payment receipt PDF:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate payment receipt PDF'
-      }
-    }
-  }
-
-  // Payment Out PDF Generation
-  static async generatePaymentOutPDF(payment) {
-    try {
-      const companyDetails = await this.getCompanyDetails()
-      const currentDate = new Date().toLocaleDateString('en-IN')
-      const paymentDate = payment.date || currentDate
-      
-      // Fetch the actual party balance from the database
-      let partyBalance = 0
-      try {
-        const partiesResponse = await partyService.getParties()
-        if (partiesResponse.success && partiesResponse.data) {
-          const party = partiesResponse.data.find(p => 
-            p.name === payment.partyName && p.phoneNumber === payment.phoneNumber
-          )
-          if (party) {
-            partyBalance = party.balance
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching party balance:', error)
-        // Fallback to calculated balance if party fetch fails
-        partyBalance = payment.totalAmount - payment.paid
-      }
-      
-      const PaymentOutDocument = () => (
-        <Document>
-          <Page size="A4" style={styles.page}>
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: '#dc2626' }]}>
-              <Text style={styles.companyName}>
-                {companyDetails?.businessName || 'Your Business Name'}
-              </Text>
-              <Text style={styles.title}>PAYMENT VOUCHER</Text>
-              <Text style={styles.number}>Voucher #{payment.paymentNo}</Text>
-            </View>
-
-            {/* Content */}
-            <View style={styles.content}>
-              {/* Info Section */}
-              <View style={styles.infoSection}>
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: '#dc2626', borderBottom: '2px solid #dc2626' }]}>Paid To</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Supplier Name:</Text>
-                    <Text style={styles.infoValue}>{payment.partyName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone Number:</Text>
-                    <Text style={styles.infoValue}>{payment.phoneNumber}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Date:</Text>
-                    <Text style={styles.infoValue}>{paymentDate}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: '#dc2626', borderBottom: '2px solid #dc2626' }]}>Business Details</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.businessName || 'Your Business Name'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Payment Details */}
-              <View style={[styles.paymentDetails, { backgroundColor: '#fef2f2', border: '2px solid #dc2626' }]}>
-                <Text style={[styles.paymentDetailsTitle, { color: '#dc2626' }]}>Payment Summary</Text>
-                
-                <View style={[styles.paymentRow, { borderBottom: '1px solid #dc2626' }]}>
-                  <Text style={styles.paymentLabel}>Outstanding Balance:</Text>
-                  <Text style={[styles.paymentAmount, { color: '#dc2626' }]}>{this.formatNumber(partyBalance + payment.paid)}</Text>
-                </View>
-                
-                <View style={[styles.paymentRow, { borderBottom: '1px solid #dc2626' }]}>
-                  <Text style={styles.paymentLabel}>Amount Paid:</Text>
-                  <Text style={[styles.paymentAmount, { color: '#dc2626' }]}>{this.formatNumber(payment.paid)}</Text>
-                </View>
-                
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Remaining Balance:</Text>
-                  <Text style={[styles.paymentAmount, { color: '#dc2626' }]}>{this.formatNumber(partyBalance)}</Text>
-                </View>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.footer}>
-                <View style={styles.signatureSection}>
-                  <Text style={styles.signatureTitle}>Authorized Signature</Text>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureName}>
-                    {companyDetails?.businessName || 'Authorized Person'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Page>
-        </Document>
-      )
-
-      const pdfBlob = await pdf(<PaymentOutDocument />).toBlob()
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-      const fileName = `payment-voucher-${payment.paymentNo}-${Date.now()}.pdf`
-
-      return {
-        success: true,
-        pdfBlob,
-        pdfUrl,
-        fileName
-      }
-    } catch (error) {
-      console.error('Error generating payment voucher PDF:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate payment voucher PDF'
-      }
-    }
-  }
 
   // Download PDF helper method
   static downloadPDF(pdfBlob, fileName) {
@@ -814,12 +560,6 @@ export class BasePDFGenerator {
         case 'purchase-bill':
           pdfResult = await this.generatePurchaseBillPDF(documentData)
           break
-        case 'payment-receipt':
-          pdfResult = await this.generatePaymentInPDF(documentData)
-          break
-        case 'payment-voucher':
-          pdfResult = await this.generatePaymentOutPDF(documentData)
-          break
         default:
           throw new Error(`Unsupported document type: ${documentType}`)
       }
@@ -872,23 +612,7 @@ export class BasePDFGenerator {
     return false
   }
 
-  static async generateAndDownloadPaymentReceipt(payment) {
-    const result = await this.generatePaymentInPDF(payment)
-    if (result.success && result.pdfBlob) {
-      this.downloadPDF(result.pdfBlob, `PaymentReceipt_${payment.paymentNo}_${Date.now()}.pdf`)
-      return true
-    }
-    return false
-  }
 
-  static async generateAndDownloadPaymentVoucher(payment) {
-    const result = await this.generatePaymentOutPDF(payment)
-    if (result.success && result.pdfBlob) {
-      this.downloadPDF(result.pdfBlob, `PaymentVoucher_${payment.paymentNo}_${Date.now()}.pdf`)
-      return true
-    }
-    return false
-  }
 
   // Convenience methods for generating and downloading PDFs (works on mobile and desktop)
   static async generateAndOpenInvoice(invoice) {
@@ -917,31 +641,7 @@ export class BasePDFGenerator {
     return false
   }
 
-  static async generateAndOpenPaymentReceipt(payment) {
-    const result = await this.generatePaymentInPDF(payment)
-    if (result.success) {
-      if (result.pdfUrl) {
-        this.downloadPDFDirectly(result.pdfUrl, `PaymentReceipt_${payment.paymentNo}_${Date.now()}.pdf`)
-      } else {
-        console.log('PDF generated successfully')
-      }
-      return true
-    }
-    return false
-  }
 
-  static async generateAndOpenPaymentVoucher(payment) {
-    const result = await this.generatePaymentOutPDF(payment)
-    if (result.success) {
-      if (result.pdfUrl) {
-        this.downloadPDFDirectly(result.pdfUrl, `PaymentVoucher_${payment.paymentNo}_${Date.now()}.pdf`)
-      } else {
-        console.log('PDF generated successfully')
-      }
-      return true
-    }
-    return false
-  }
 
   // ===== NEW UPLOAD AND WHATSAPP METHODS =====
 
@@ -961,12 +661,6 @@ export class BasePDFGenerator {
           break
         case 'purchase-bill':
           pdfResult = await this.generatePurchaseBillPDF(documentData)
-          break
-        case 'payment-receipt':
-          pdfResult = await this.generatePaymentInPDF(documentData)
-          break
-        case 'payment-voucher':
-          pdfResult = await this.generatePaymentOutPDF(documentData)
           break
         default:
           throw new Error(`Unsupported document type: ${documentType}`)
@@ -1009,12 +703,6 @@ export class BasePDFGenerator {
           break
         case 'purchase-bill':
           pdfResult = await this.generatePurchaseBillPDF(documentData)
-          break
-        case 'payment-receipt':
-          pdfResult = await this.generatePaymentInPDF(documentData)
-          break
-        case 'payment-voucher':
-          pdfResult = await this.generatePaymentOutPDF(documentData)
           break
         default:
           throw new Error(`Unsupported document type: ${documentType}`)
@@ -1068,18 +756,6 @@ export class BasePDFGenerator {
           billNo: documentData.billNo,
           supplierName: documentData.partyName,
           amount: documentData.totalAmount
-        }
-      case 'payment-receipt':
-        return {
-          receiptNo: documentData.paymentNo,
-          customerName: documentData.partyName,
-          amount: documentData.received
-        }
-      case 'payment-voucher':
-        return {
-          voucherNo: documentData.paymentNo,
-          supplierName: documentData.partyName,
-          amount: documentData.paid
         }
       default:
         return {}

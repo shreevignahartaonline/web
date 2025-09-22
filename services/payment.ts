@@ -66,6 +66,8 @@ export interface PaymentSummaryResponse {
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-app-v43g.onrender.com/api'
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+
 
 // Helper function to handle API responses
 const handleResponse = async (response: Response) => {
@@ -142,43 +144,6 @@ export class PaymentService {
       
       const result = await handleResponse(response)
       
-      // Generate and open PDF after successful creation
-      if (result.success && result.data) {
-        try {
-          if (result.data.type === 'payment-in') {
-            const paymentInData = {
-              id: result.data.id || '',
-              paymentNo: result.data.paymentNo,
-              partyName: result.data.partyName,
-              phoneNumber: result.data.phoneNumber,
-              received: result.data.amount,
-              totalAmount: result.data.totalAmount,
-              date: result.data.date
-            }
-            
-            // Generate and download payment receipt PDF directly (works on mobile and desktop)
-            await BasePDFGenerator.generateAndOpenPaymentReceipt(paymentInData)
-            console.log('Payment receipt PDF generated and opened successfully!')
-          } else if (result.data.type === 'payment-out') {
-            const paymentOutData = {
-              id: result.data.id || '',
-              paymentNo: result.data.paymentNo,
-              partyName: result.data.partyName,
-              phoneNumber: result.data.phoneNumber,
-              paid: result.data.amount,
-              totalAmount: result.data.totalAmount,
-              date: result.data.date
-            }
-            
-            // Generate and download payment voucher PDF directly (works on mobile and desktop)
-            await BasePDFGenerator.generateAndOpenPaymentVoucher(paymentOutData)
-            console.log('Payment voucher PDF generated and opened successfully!')
-          }
-        } catch (pdfError) {
-          console.error('Error generating payment PDF:', pdfError)
-          // Don't throw error - PDF generation failure shouldn't break the payment creation
-        }
-      }
       
       return result
     } catch (error) {
@@ -373,127 +338,8 @@ export class PaymentService {
     }
   }
 
-  // Generate PDF for existing payment
-  static async generatePDFForPayment(payment: Payment): Promise<boolean> {
-    try {
-      if (payment.type === 'payment-in') {
-        const paymentInData = {
-          id: payment.id || '',
-          paymentNo: payment.paymentNo,
-          partyName: payment.partyName,
-          phoneNumber: payment.phoneNumber,
-          received: payment.amount,
-          totalAmount: payment.totalAmount,
-          date: payment.date
-        }
-        
-        return await BasePDFGenerator.generateAndOpenPaymentReceipt(paymentInData)
-      } else if (payment.type === 'payment-out') {
-        const paymentOutData = {
-          id: payment.id || '',
-          paymentNo: payment.paymentNo,
-          partyName: payment.partyName,
-          phoneNumber: payment.phoneNumber,
-          paid: payment.amount,
-          totalAmount: payment.totalAmount,
-          date: payment.date
-        }
-        
-        return await BasePDFGenerator.generateAndOpenPaymentVoucher(paymentOutData)
-      }
-      
-      return false
-    } catch (error) {
-      console.error('Error generating PDF for payment:', error)
-      return false
-    }
-  }
 
-  // Generate PDF and send via WhatsApp (simplified - no PDF opening)
-  static async generateAndSendPDFViaWhatsApp(payment: Payment): Promise<boolean> {
-    try {
-      if (payment.type === 'payment-in') {
-        const paymentInData = {
-          id: payment.id || '',
-          paymentNo: payment.paymentNo,
-          partyName: payment.partyName,
-          phoneNumber: payment.phoneNumber,
-          received: payment.amount,
-          totalAmount: payment.totalAmount,
-          date: payment.date
-        }
-        
-        const result = await BasePDFGenerator.generateAndSendPDFOnly(
-          paymentInData, 
-          'payment-receipt', 
-          payment.phoneNumber
-        )
-        
-        return result.success
-      } else if (payment.type === 'payment-out') {
-        const paymentOutData = {
-          id: payment.id || '',
-          paymentNo: payment.paymentNo,
-          partyName: payment.partyName,
-          phoneNumber: payment.phoneNumber,
-          paid: payment.amount,
-          totalAmount: payment.totalAmount,
-          date: payment.date
-        }
-        
-        const result = await BasePDFGenerator.generateAndSendPDFOnly(
-          paymentOutData, 
-          'payment-voucher', 
-          payment.phoneNumber
-        )
-        
-        return result.success
-      }
-      
-      return false
-    } catch (error) {
-      console.error('Error generating and sending PDF via WhatsApp:', error)
-      return false
-    }
-  }
 
-  // Upload existing PDF and send via WhatsApp
-  static async uploadAndSendExistingPDF(pdfBlob: Blob, fileName: string, payment: Payment): Promise<boolean> {
-    try {
-      if (payment.type === 'payment-in') {
-        const whatsappData = {
-          phoneNumber: payment.phoneNumber,
-          documentUrl: '', // Will be set after upload
-          fileName: fileName,
-          documentType: 'payment-receipt' as const,
-          receiptNo: payment.paymentNo,
-          customerName: payment.partyName,
-          amount: payment.amount
-        }
-        
-        const result = await BasePDFGenerator.uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData)
-        return result.success
-      } else if (payment.type === 'payment-out') {
-        const whatsappData = {
-          phoneNumber: payment.phoneNumber,
-          documentUrl: '', // Will be set after upload
-          fileName: fileName,
-          documentType: 'payment-voucher' as const,
-          voucherNo: payment.paymentNo,
-          supplierName: payment.partyName,
-          amount: payment.amount
-        }
-        
-        const result = await BasePDFGenerator.uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData)
-        return result.success
-      }
-      
-      return false
-    } catch (error) {
-      console.error('Error uploading and sending existing PDF:', error)
-      return false
-    }
-  }
 
   // Get payment type display text
   static getPaymentTypeText(type: string): string {

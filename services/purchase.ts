@@ -68,6 +68,8 @@ export interface ApiError {
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-app-v43g.onrender.com/api'
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+
 
 // Helper function to handle API responses
 const handleResponse = async (response: Response) => {
@@ -273,6 +275,24 @@ export class PurchaseService {
       return handleResponse(response)
     } catch (error) {
       console.error('Error deleting purchase:', error)
+      throw error
+    }
+  }
+
+  // Delete multiple purchases
+  static async deletePurchases(purchaseIds: string[]): Promise<{ success: boolean; message: string; deletedCount: number }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/purchases/bulk`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ purchaseIds }),
+      })
+      
+      return handleResponse(response)
+    } catch (error) {
+      console.error('Error deleting purchases:', error)
       throw error
     }
   }

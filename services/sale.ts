@@ -72,6 +72,7 @@ export interface PartySalesFilters {
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-app-v43g.onrender.com/api'
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 // Helper function to handle API responses
 const handleResponse = async (response: Response) => {
@@ -206,6 +207,24 @@ export class SaleService {
       return handleResponse(response)
     } catch (error) {
       console.error('Error deleting sale:', error)
+      throw error
+    }
+  }
+
+  // Delete multiple sales
+  static async deleteSales(saleIds: string[]): Promise<{ success: boolean; message: string; deletedCount: number }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sales/bulk`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ saleIds }),
+      })
+      
+      return handleResponse(response)
+    } catch (error) {
+      console.error('Error deleting sales:', error)
       throw error
     }
   }
