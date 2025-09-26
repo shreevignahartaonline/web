@@ -930,8 +930,8 @@ export default function PaymentsPage() {
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => handleGeneratePDF(paymentDetail)}
-              disabled={generatingPDF}
+              onClick={() => paymentDetail && handleGeneratePDF(paymentDetail)}
+              disabled={generatingPDF || !paymentDetail}
             >
               {generatingPDF ? (
                 <>
