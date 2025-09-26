@@ -485,6 +485,159 @@ export class BasePDFGenerator {
     }
   }
 
+  // Payment Receipt PDF Generation
+  static async generatePaymentReceiptPDF(payment) {
+    try {
+      console.log('Starting payment receipt PDF generation for:', payment.paymentNo)
+      
+      const companyDetails = await this.getCompanyDetails()
+      // Try to fetch remaining balance (after transaction) from party
+      let remainingBalance = null
+      try {
+        const partiesResponse = await partyService.getParties()
+        const parties = partiesResponse?.data || []
+        const matchedParty = parties.find(p => (
+          (p.name && p.name === payment.partyName) && (p.phoneNumber && p.phoneNumber === payment.phoneNumber)
+        )) || parties.find(p => p.name === payment.partyName) || null
+        remainingBalance = matchedParty?.balance ?? null
+      } catch (e) {
+        console.warn('Could not load party balance for PDF. Proceeding without it.')
+      }
+      const currentDate = new Date().toLocaleDateString('en-IN')
+      const paymentDate = payment.date || currentDate
+      
+      const isPaymentIn = payment.type === 'payment-in'
+      const headerColor = isPaymentIn ? '#059669' : '#dc2626' // Green for payment-in, red for payment-out
+      const title = isPaymentIn ? 'PAYMENT RECEIPT' : 'PAYMENT VOUCHER'
+      const documentType = isPaymentIn ? 'Receipt' : 'Voucher'
+      const amountLabel = isPaymentIn ? 'Amount Received' : 'Amount Paid'
+      const afterBalance = typeof remainingBalance === 'number' ? remainingBalance : 0
+      const outstandingBefore = isPaymentIn ? afterBalance + (payment.amount || 0) : afterBalance - (payment.amount || 0)
+      
+      const PaymentReceiptDocument = () => (
+        <Document>
+          <Page size="A4" style={styles.page}>
+            {/* Header */}
+            <View style={[styles.header, { backgroundColor: headerColor }]}>
+              <Text style={styles.companyName}>
+                {companyDetails?.businessName || 'Your Business Name'}
+              </Text>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.number}>{documentType} #{payment.paymentNo}</Text>
+            </View>
+
+            {/* Content */}
+            <View style={styles.content}>
+              {/* Info Section */}
+              <View style={styles.infoSection}>
+                <View style={styles.infoBlock}>
+                  <Text style={[styles.infoTitle, { color: headerColor, borderBottom: `2px solid ${headerColor}` }]}>
+                    {isPaymentIn ? 'Received From' : 'Paid To'}
+                  </Text>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Name:</Text>
+                    <Text style={styles.infoValue}>{payment.partyName}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{payment.phoneNumber}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Date:</Text>
+                    <Text style={styles.infoValue}>{paymentDate}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.infoBlock}>
+                  <Text style={[styles.infoTitle, { color: headerColor, borderBottom: `2px solid ${headerColor}` }]}>
+                    {isPaymentIn ? 'Received By' : 'Paid By'}
+                  </Text>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Business:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.businessName || 'Your Business Name'}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Payment Details Section */}
+              <View style={[styles.paymentDetails, { borderColor: headerColor }]}>
+                <Text style={[styles.paymentDetailsTitle, { color: headerColor }]}>
+                  Payment Details
+                </Text>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Payment Type:</Text>
+                  <Text style={[styles.paymentAmount, { color: headerColor }]}>
+                    {isPaymentIn ? 'Payment In' : 'Payment Out'}
+                  </Text>
+                </View>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>Outstanding Balance :</Text>
+                  <Text style={[styles.paymentAmount, { color: headerColor }]}>
+                    {String(outstandingBefore)}
+                  </Text>
+                </View>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>{amountLabel}:</Text>
+                  <Text style={[styles.paymentAmount, { color: headerColor }]}>
+                    {String(payment.amount)}
+                  </Text>
+                </View>
+                <View style={[styles.paymentRow, { borderBottom: 'none' }]}>
+                  <Text style={styles.paymentLabel}>Remaining Balance :</Text>
+                  <Text style={[styles.paymentAmount, { color: headerColor, fontSize: 18 }]}>
+                    {String(afterBalance)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Total Section */}
+              <View style={styles.totalSection}>
+                <View style={[styles.totalRow, styles.grandTotal, { color: headerColor }]}>
+                  <Text style={styles.totalLabel}>Total {isPaymentIn ? 'Received' : 'Paid'}:</Text>
+                  <Text style={styles.totalAmount}>{String(payment.amount)}</Text>
+                </View>
+              </View>
+
+              {/* Footer */}
+              <View style={styles.footer}>
+                <View style={styles.signatureSection}>
+                  <Text style={styles.signatureTitle}>Authorized Signature</Text>
+                  <View style={styles.signatureLine} />
+                  <Text style={styles.signatureName}>
+                    {companyDetails?.businessName || 'Authorized Person'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Page>
+        </Document>
+      )
+
+      const pdfBlob = await pdf(<PaymentReceiptDocument />).toBlob()
+      const fileName = `${isPaymentIn ? 'payment-receipt' : 'payment-voucher'}-${payment.paymentNo}-${Date.now()}.pdf`
+
+      return {
+        success: true,
+        pdfBlob,
+        fileName
+      }
+    } catch (error) {
+      console.error('Error generating payment receipt PDF:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate payment receipt PDF'
+      }
+    }
+  }
+
 
 
 
@@ -501,6 +654,10 @@ export class BasePDFGenerator {
           break
         case 'purchase-bill':
           pdfResult = await this.generatePurchaseBillPDF(documentData)
+          break
+        case 'payment-receipt':
+        case 'payment-voucher':
+          pdfResult = await this.generatePaymentReceiptPDF(documentData)
           break
         default:
           throw new Error(`Unsupported document type: ${documentType}`)
@@ -562,6 +719,18 @@ export class BasePDFGenerator {
           billNo: documentData.billNo,
           supplierName: documentData.partyName,
           amount: documentData.totalAmount
+        }
+      case 'payment-receipt':
+        return {
+          receiptNo: documentData.paymentNo,
+          customerName: documentData.partyName,
+          amount: documentData.amount
+        }
+      case 'payment-voucher':
+        return {
+          voucherNo: documentData.paymentNo,
+          supplierName: documentData.partyName,
+          amount: documentData.amount
         }
       default:
         return {}

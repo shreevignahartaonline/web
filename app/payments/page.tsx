@@ -23,10 +23,12 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  Eye
+  Eye,
+  Download
 } from "lucide-react"
 import { PaymentService, Payment, PaymentCreateData, PaymentFilters } from "@/services/payment"
 import { partyService, Party } from "@/services/party"
+import { BasePDFGenerator } from "@/services/basePDFGenerator"
 import { toast } from "sonner"
 
 export default function PaymentsPage() {
@@ -56,6 +58,7 @@ export default function PaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [paymentDetail, setPaymentDetail] = useState<Payment | null>(null)
   const [loadingPaymentDetail, setLoadingPaymentDetail] = useState(false)
+  const [generatingPDF, setGeneratingPDF] = useState(false)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -296,6 +299,50 @@ export default function PaymentsPage() {
     setTimeout(() => {
       setShowPartyDropdown(false)
     }, 200)
+  }
+
+  // Handle PDF generation and download
+  const handleGeneratePDF = async (payment: Payment) => {
+    try {
+      setGeneratingPDF(true)
+      
+      const paymentDataForPDF = {
+        id: payment.id || '',
+        paymentNo: payment.paymentNo,
+        type: payment.type,
+        partyName: payment.partyName,
+        phoneNumber: payment.phoneNumber,
+        amount: payment.amount,
+        totalAmount: payment.totalAmount || payment.amount,
+        date: payment.date
+      }
+      
+      const documentType = payment.type === 'payment-in' ? 'payment-receipt' : 'payment-voucher'
+      
+      // Generate PDF
+      const pdfResult = await BasePDFGenerator.generatePaymentReceiptPDF(paymentDataForPDF)
+      
+      if (pdfResult.success) {
+        // Create download link
+        const url = URL.createObjectURL(pdfResult.pdfBlob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = pdfResult.fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        
+        toast.success(`${documentType === 'payment-receipt' ? 'Receipt' : 'Voucher'} downloaded successfully!`)
+      } else {
+        toast.error(`Failed to generate ${documentType}: ${pdfResult.error}`)
+      }
+    } catch (error: any) {
+      console.error('Error generating PDF:', error)
+      toast.error(`Failed to generate PDF: ${error.message}`)
+    } finally {
+      setGeneratingPDF(false)
+    }
   }
 
   // Get payment type color
@@ -881,6 +928,23 @@ export default function PaymentsPage() {
             </div>
           )}
           <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => handleGeneratePDF(paymentDetail)}
+              disabled={generatingPDF}
+            >
+              {generatingPDF ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download {paymentDetail?.type === 'payment-in' ? 'Receipt' : 'Voucher'}
+                </>
+              )}
+            </Button>
             <Button variant="outline" onClick={() => setIsTransactionDetailOpen(false)}>
               Close
             </Button>

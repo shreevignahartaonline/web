@@ -144,6 +144,47 @@ export class PaymentService {
       
       const result = await handleResponse(response)
       
+      // Generate and send PDF via WhatsApp after successful creation
+      if (result.success && result.data) {
+        try {
+          console.log('Creating payment data for PDF generation...')
+          console.log('Payment data:', result.data)
+          
+          const paymentDataForPDF = {
+            id: result.data.id || '',
+            paymentNo: result.data.paymentNo,
+            type: result.data.type,
+            partyName: result.data.partyName,
+            phoneNumber: result.data.phoneNumber,
+            amount: result.data.amount,
+            totalAmount: result.data.totalAmount || result.data.amount,
+            date: result.data.date
+          }
+          
+          console.log('Payment data for PDF:', paymentDataForPDF)
+          
+          // Determine document type based on payment type
+          const documentType = paymentDataForPDF.type === 'payment-in' ? 'payment-receipt' : 'payment-voucher'
+          
+          // Generate and send PDF via WhatsApp
+          console.log('🔄 Calling generateAndSendPDFOnly...')
+          const pdfResult = await BasePDFGenerator.generateAndSendPDFOnly(
+            paymentDataForPDF, 
+            documentType, 
+            result.data.phoneNumber
+          )
+          console.log('📤 PDF generation result:', pdfResult)
+          
+          if (pdfResult.success) {
+            console.log('✅ Payment PDF generated and sent via WhatsApp successfully!')
+          } else {
+            console.error('❌ Payment PDF generation failed:', pdfResult.error)
+          }
+        } catch (pdfError) {
+          console.error('Error generating payment PDF:', pdfError)
+          // Don't throw error - PDF generation failure shouldn't break the payment creation
+        }
+      }
       
       return result
     } catch (error) {
