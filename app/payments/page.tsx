@@ -322,7 +322,7 @@ export default function PaymentsPage() {
       // Generate PDF
       const pdfResult = await BasePDFGenerator.generatePaymentReceiptPDF(paymentDataForPDF)
       
-      if (pdfResult.success) {
+      if (pdfResult.success && pdfResult.pdfBlob) {
         // Create download link
         const url = URL.createObjectURL(pdfResult.pdfBlob)
         const link = document.createElement('a')
@@ -335,7 +335,7 @@ export default function PaymentsPage() {
         
         toast.success(`${documentType === 'payment-receipt' ? 'Receipt' : 'Voucher'} downloaded successfully!`)
       } else {
-        toast.error(`Failed to generate ${documentType}: ${pdfResult.error}`)
+        toast.error(`Failed to generate ${documentType}: ${pdfResult.error || 'PDF blob is undefined'}`)
       }
     } catch (error: any) {
       console.error('Error generating PDF:', error)
