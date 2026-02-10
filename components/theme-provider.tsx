@@ -1,27 +1,22 @@
 "use client";
 
 import * as React from "react";
-
-// @ts-ignore - Suppress TypeScript for next-themes import
+// @ts-expect-error -- next-themes types mismatch with React 19
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  attribute?: string;
-  defaultTheme?: string;
-  enableSystem?: boolean;
-  disableTransitionOnChange?: boolean;
+  [key: string]: unknown;
 }
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  // @ts-ignore - Suppress TypeScript for props
   return (
     <NextThemesProvider
-      // @ts-ignore
       attribute="class"
-      defaultTheme="system"
-      enableSystem={true}
-      disableTransitionOnChange={true}
+      defaultTheme="light"
+      enableSystem={false}
+      forcedTheme="light"
+      disableTransitionOnChange
       {...props}
     >
       {children}

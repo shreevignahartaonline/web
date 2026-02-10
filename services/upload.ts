@@ -237,14 +237,19 @@ export class UploadService {
 
       return response.data
     } catch (error: any) {
-      console.error('WhatsApp send error:', error)
-      
       let errorMessage = 'Network error during WhatsApp send'
       let errorDetails = null
+      let statusCode: number | undefined
       
       if (error.response) {
-        errorMessage = error.response.data?.error || error.response.data?.message || `Server error: ${error.response.status}`
+        statusCode = error.response.status
         errorDetails = error.response.data
+
+        if (statusCode === 429) {
+          errorMessage = 'WhatsApp API rate limit exceeded. Please wait a moment and try again.'
+        } else {
+          errorMessage = error.response.data?.error || error.response.data?.message || `Server error: ${statusCode}`
+        }
       } else if (error.request) {
         errorMessage = 'No response from server. Please check if the backend is running.'
       } else {
@@ -254,6 +259,7 @@ export class UploadService {
       return {
         success: false,
         error: errorMessage,
+        statusCode,
         details: errorDetails
       }
     }

@@ -15,11 +15,9 @@ import {
   Package, 
   ShoppingCart, 
   Users, 
-  TrendingUp,
   DollarSign,
   Plus,
   Search,
-  Filter,
   Phone,
   Mail,
   Eye,
@@ -29,7 +27,6 @@ import {
   AlertCircle,
   MapPin,
   FileText,
-  Calendar,
   User,
   Share2,
   Printer,
@@ -37,21 +34,14 @@ import {
   ChevronRight
 } from "lucide-react"
 import { partyService, Party } from "@/services/party"
-import { SaleService, Sale } from "@/services/sale"
-import { PurchaseService, Purchase } from "@/services/purchase"
-import { PaymentService, Payment } from "@/services/payment"
+import { SaleService } from "@/services/sale"
+import { PurchaseService } from "@/services/purchase"
+import { PaymentService } from "@/services/payment"
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
-  const [recentParties, setRecentParties] = useState<Party[]>([])
   const [allParties, setAllParties] = useState<Party[]>([])
   const [filteredParties, setFilteredParties] = useState<Party[]>([])
-  const [partyStats, setPartyStats] = useState({
-    totalParties: 0,
-    customers: 0,
-    suppliers: 0,
-    totalBalance: 0
-  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -162,12 +152,7 @@ export default function Dashboard() {
       if (partiesResponse.success && partiesResponse.data) {
         setAllParties(partiesResponse.data)
         setFilteredParties(partiesResponse.data)
-        setRecentParties(partiesResponse.data.slice(0, 3))
-        }
-        
-        // Load party stats
-        const statsData = await partyService.getPartyStats()
-        setPartyStats(statsData)
+      }
       
       } catch (err) {
       console.error("Failed to load dashboard data:", err)
@@ -423,14 +408,9 @@ export default function Dashboard() {
       if (response.success && response.data) {
         setAllParties(response.data)
         setFilteredParties(response.data)
-        setRecentParties(response.data.slice(0, 3))
       } else {
         setError(response.error || "Failed to load parties")
       }
-      
-      // Load party stats
-      const statsData = await partyService.getPartyStats()
-      setPartyStats(statsData)
     } catch (err: any) {
       setError(err.message || "An error occurred while loading parties")
     } finally {

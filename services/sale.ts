@@ -144,10 +144,6 @@ export class SaleService {
       // Generate and send PDF via WhatsApp after successful creation
       if (result.success && result.data) {
         try {
-          console.log('Creating invoice data for PDF generation...')
-          console.log('Sale data:', result.data)
-          console.log('Items from sale:', result.data.items)
-          
           const invoiceData = {
             id: result.data.id || '',
             invoiceNo: result.data.invoiceNo,
@@ -158,21 +154,9 @@ export class SaleService {
             date: result.data.date
           }
           
-          console.log('Invoice data for PDF:', invoiceData)
-          
-          // Generate and send PDF via WhatsApp
-          console.log('🔄 Calling generateAndSendPDFOnly...')
-          const pdfResult = await BasePDFGenerator.generateAndSendPDFOnly(invoiceData, 'invoice', result.data.phoneNumber)
-          console.log('📤 PDF generation result:', pdfResult)
-          
-          if (pdfResult.success) {
-            console.log('✅ Invoice PDF generated and sent via WhatsApp successfully!')
-          } else {
-            console.error('❌ Invoice PDF generation failed:', pdfResult.error)
-          }
+          await BasePDFGenerator.generateAndSendPDFOnly(invoiceData, 'invoice', result.data.phoneNumber)
         } catch (pdfError) {
-          console.error('Error generating invoice PDF:', pdfError)
-          // Don't throw error - PDF generation failure shouldn't break the sale creation
+          // PDF generation failure shouldn't break the sale creation
         }
       }
       

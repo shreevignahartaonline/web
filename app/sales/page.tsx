@@ -1,13 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { SaleService, Sale, SaleCreateData, SaleItem } from '../../services/sale'
+import { SaleService, Sale } from '../../services/sale'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
 import { Edit, Trash2, ChevronLeft, ChevronRight, Eye, Loader2 } from 'lucide-react'
-import BasePDFGenerator from '../../services/basePDFGenerator'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 interface SaleFormData {
@@ -71,35 +68,17 @@ const SalesPage: React.FC = () => {
   // Load initial data
   useEffect(() => {
     loadSales()
-    
-    // Test items loading separately
-    const testItemsLoad = async () => {
-      try {
-        console.log('Testing items load...')
-        const itemsTest = await itemService.getItems()
-        console.log('Items test result:', itemsTest)
-      } catch (err) {
-        console.error('Items test error:', err)
-      }
-    }
-    
-    testItemsLoad()
   }, [])
 
   const loadSales = async () => {
     try {
       setLoading(true)
-      console.log('Loading data...')
       
       const [salesResponse, partiesResponse, itemsResponse] = await Promise.all([
         SaleService.getSales(),
         partyService.getParties(),
         itemService.getItems()
       ])
-      
-      console.log('Sales response:', salesResponse)
-      console.log('Parties response:', partiesResponse)
-      console.log('Items response:', itemsResponse)
       
       setSales(salesResponse.data)
       setParties(partiesResponse.data || [])
@@ -165,19 +144,7 @@ const SalesPage: React.FC = () => {
 
       const response = await SaleService.createSale(saleData)
       setSales(prev => [response.data, ...prev])
-      
-      // Send PDF via WhatsApp
-      try {
-        const whatsappResult = await SaleService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult) {
-          setSuccess('Invoice created and sent to party via WhatsApp!')
-        } else {
-          setSuccess('Sale created successfully!')
-        }
-      } catch (whatsappError) {
-        console.error('WhatsApp send error:', whatsappError)
-        setSuccess('Sale created successfully!')
-      }
+      setSuccess('Sale created successfully!')
       
       resetForm()
       setShowForm(false)
@@ -446,15 +413,11 @@ const SalesPage: React.FC = () => {
   const handleItemSearch = (query: string) => {
     setItemSearchQuery(query)
     
-    console.log('Searching items with query:', query)
-    console.log('Available items:', items)
-    
     if (query.trim()) {
       const filtered = items.filter(item => 
         item.productName.toLowerCase().includes(query.toLowerCase()) ||
         item.category.toLowerCase().includes(query.toLowerCase())
       )
-      console.log('Filtered items:', filtered)
       setFilteredItems(filtered)
     } else {
       setFilteredItems([])

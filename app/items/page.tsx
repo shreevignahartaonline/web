@@ -9,13 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Package2, Plus, Search, Filter, AlertTriangle, Edit, Trash2, Loader2, Crown, ChevronLeft, ChevronRight } from "lucide-react";
-import { itemService, Item, ItemSummary, ItemFilters } from "@/services/item";
+import { Package2, Plus, Search, AlertTriangle, Edit, Trash2, Loader2, Crown, ChevronLeft, ChevronRight } from "lucide-react";
+import { itemService, Item, ItemFilters } from "@/services/item";
 import { toast } from "sonner";
 
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
-  const [summary, setSummary] = useState<ItemSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -359,7 +358,6 @@ export default function ItemsPage() {
             <div className="space-y-4">
               {/* Bardana Items - Special UI */}
               {bardanaItems.map((item) => {
-                const formattedItem = itemService.formatItemForDisplay(item);
                 return (
                   <div key={item._id} className="flex items-center justify-between p-4 border-2 border-gradient-to-r from-amber-200 to-yellow-200 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 shadow-md">
                     {/* Desktop Layout - Keep original */}
@@ -425,7 +423,6 @@ export default function ItemsPage() {
 
               {/* Regular Items */}
               {regularItems.map((item) => {
-                const formattedItem = itemService.formatItemForDisplay(item);
                 return (
                   <div key={item._id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
                     {/* Desktop Layout - Keep original */}

@@ -1,13 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { PurchaseService, Purchase, PurchaseCreateData, PurchaseItem } from '../../services/purchase'
+import { PurchaseService, Purchase } from '../../services/purchase'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
 import { Edit, Trash2, ChevronLeft, ChevronRight, Eye, Loader2 } from 'lucide-react'
-import BasePDFGenerator from '../../services/basePDFGenerator'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 interface PurchaseFormData {
@@ -71,35 +68,17 @@ const PurchasePage: React.FC = () => {
   // Load initial data
   useEffect(() => {
     loadPurchases()
-    
-    // Test items loading separately
-    const testItemsLoad = async () => {
-      try {
-        console.log('Testing items load...')
-        const itemsTest = await itemService.getItems()
-        console.log('Items test result:', itemsTest)
-      } catch (err) {
-        console.error('Items test error:', err)
-      }
-    }
-    
-    testItemsLoad()
   }, [])
 
   const loadPurchases = async () => {
     try {
       setLoading(true)
-      console.log('Loading data...')
       
       const [purchasesResponse, partiesResponse, itemsResponse] = await Promise.all([
         PurchaseService.getPurchases(),
         partyService.getParties(),
         itemService.getItems()
       ])
-      
-      console.log('Purchases response:', purchasesResponse)
-      console.log('Parties response:', partiesResponse)
-      console.log('Items response:', itemsResponse)
       
       setPurchases(purchasesResponse.data)
       setParties(partiesResponse.data || [])
@@ -161,19 +140,7 @@ const PurchasePage: React.FC = () => {
 
       const response = await PurchaseService.createPurchase(purchaseData)
       setPurchases(prev => [response.data, ...prev])
-      
-      // Send PDF via WhatsApp
-      try {
-        const whatsappResult = await PurchaseService.generateAndSendPDFViaWhatsApp(response.data)
-        if (whatsappResult) {
-          setSuccess('Purchase bill created and sent to party via WhatsApp!')
-        } else {
-          setSuccess('Purchase created successfully!')
-        }
-      } catch (whatsappError) {
-        console.error('WhatsApp send error:', whatsappError)
-        setSuccess('Purchase created successfully!')
-      }
+      setSuccess('Purchase created successfully!')
       
       resetForm()
       setShowForm(false)
@@ -438,15 +405,11 @@ const PurchasePage: React.FC = () => {
   const handleItemSearch = (query: string) => {
     setItemSearchQuery(query)
     
-    console.log('Searching items with query:', query)
-    console.log('Available items:', items)
-    
     if (query.trim()) {
       const filtered = items.filter(item => 
         item.productName.toLowerCase().includes(query.toLowerCase()) ||
         item.category.toLowerCase().includes(query.toLowerCase())
       )
-      console.log('Filtered items:', filtered)
       setFilteredItems(filtered)
     } else {
       setFilteredItems([])

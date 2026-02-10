@@ -5,30 +5,25 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import {
   LayoutDashboard,
-  Users,
   ShoppingCart,
   ArrowDownToLine,
-  ArrowUpFromLine,
   Package2,
   Building2,
   Menu,
   X,
   CreditCard,
 } from "lucide-react"
-import { companyService, Company } from "@/services/company"
+import { companyService } from "@/services/company"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import { ModeToggle } from "@/components/mode-toggle"
 
 // Navigation data
 const navItems = [
@@ -68,40 +63,29 @@ export function Navbar() {
   React.useEffect(() => {
     const loadCompanyName = async () => {
       try {
-        // Test connectivity first
         const isConnected = await companyService.testConnection()
-        if (!isConnected) {
-          console.log('Backend not reachable, using default company name')
-          return
-        }
+        if (!isConnected) return
         
         try {
           const response = await companyService.getCompanyDetails()
           if (response.success && response.data?.businessName) {
             setCompanyName(response.data.businessName)
           }
-        } catch (error: any) {
-          // Handle 404 (no company exists) gracefully
-          if (error?.status === 404) {
-            console.log('No company exists yet, using default name')
-          } else {
-            console.log('Error loading company name:', error)
-          }
+        } catch {
+          // Keep default name if company doesn't exist or request fails
         }
-      } catch (error) {
-        // Keep default name if company data is not available
-        console.log('Company data not available, using default name')
+      } catch {
+        // Keep default name if backend is not available
       }
     }
 
     loadCompanyName()
   }, [])
 
-  // Listen for company changes (when user navigates back to company page)
+  // Reload company name when user returns to the tab
   React.useEffect(() => {
-    const handleStorageChange = () => {
-      // Reload company name when storage changes (indicating company was updated/deleted)
-      const loadCompanyName = async () => {
+    const handleFocus = () => {
+      const reload = async () => {
         try {
           const response = await companyService.getCompanyDetails()
           if (response.success && response.data?.businessName) {
@@ -109,25 +93,15 @@ export function Navbar() {
           } else {
             setCompanyName("Vignaharta Plastics")
           }
-        } catch (error: any) {
-          // Handle 404 (no company exists) gracefully
-          if (error?.status === 404) {
-            // Use default name
-          } else {
-            // Keep default name on error
-          }
+        } catch {
           setCompanyName("Vignaharta Plastics")
         }
       }
-      loadCompanyName()
+      reload()
     }
 
-    // Listen for focus events (when user comes back to the tab)
-    window.addEventListener('focus', handleStorageChange)
-    
-    return () => {
-      window.removeEventListener('focus', handleStorageChange)
-    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
   return (
@@ -172,7 +146,6 @@ export function Navbar() {
 
         {/* Tablet/Mobile Actions */}
         <div className="lg:hidden flex items-center space-x-3">
-          <ModeToggle />
           <Button
             variant="ghost"
             size="icon"
@@ -185,11 +158,6 @@ export function Navbar() {
             )}
             <span className="sr-only">Toggle menu</span>
           </Button>
-        </div>
-
-        {/* Desktop Right Actions */}
-        <div className="hidden lg:flex items-center">
-          <ModeToggle />
         </div>
       </div>
 

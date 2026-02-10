@@ -203,13 +203,9 @@ export class PurchaseService {
       
       const result = await handleResponse(response)
       
-      // Generate and open PDF after successful creation
+      // Generate and send PDF via WhatsApp after successful creation
       if (result.success && result.data) {
         try {
-          console.log('Creating purchase bill data for PDF generation...')
-          console.log('Purchase data:', result.data)
-          console.log('Items from purchase:', result.data.items)
-          
           const billData = {
             id: result.data.id || '',
             billNo: result.data.billNo,
@@ -220,14 +216,9 @@ export class PurchaseService {
             date: result.data.date
           }
           
-          console.log('Purchase bill data for PDF:', billData)
-          
-          // Generate and send PDF via WhatsApp
           await BasePDFGenerator.generateAndSendPDFOnly(billData, 'purchase-bill', result.data.phoneNumber)
-          console.log('Purchase bill PDF generated and sent via WhatsApp successfully!')
         } catch (pdfError) {
-          console.error('Error generating purchase bill PDF:', pdfError)
-          // Don't throw error - PDF generation failure shouldn't break the purchase creation
+          // PDF generation failure shouldn't break the purchase creation
         }
       }
       

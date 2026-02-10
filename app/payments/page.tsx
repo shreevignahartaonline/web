@@ -12,7 +12,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   Plus, 
   Search, 
-  Filter, 
   AlertTriangle, 
   Edit, 
   Trash2, 
@@ -20,7 +19,6 @@ import {
   Calendar,
   User,
   Phone,
-  FileText,
   ChevronLeft,
   ChevronRight,
   Eye,
