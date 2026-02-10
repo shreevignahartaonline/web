@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-// @ts-expect-error -- next-themes types mismatch with React 19
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 interface ThemeProviderProps {
