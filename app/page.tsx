@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
-  Package,ShoppingCart, DollarSign, Plus, Search, Phone, Mail, Eye, Edit, Trash2, Loader2, AlertCircle, MapPin, FileText, User, ChevronLeft, ChevronRight} from "lucide-react"
+  Package, ShoppingCart, DollarSign, Plus, Search, Phone, Mail, Eye, Edit, Trash2, Loader2, AlertCircle, MapPin, FileText, User, Users, ChevronLeft, ChevronRight} from "lucide-react"
 import { partyService, Party } from "@/services/party"
 import { SaleService } from "@/services/sale"
 import { PurchaseService } from "@/services/purchase"
