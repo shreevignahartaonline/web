@@ -1,8 +1,13 @@
 import { pdf, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { companyService } from './company'
 import { partyService } from './party'
 import { UploadService } from './upload'
 import React from 'react'
+
+// Hardcoded company details (used in all PDF documents)
+const COMPANY_DETAILS = {
+  businessName: 'Vignaharta Plastics',
+  phoneNumber1: '+919834049202',
+}
 
 // Define styles for PDF documents
 const styles = StyleSheet.create({
@@ -200,14 +205,8 @@ const styles = StyleSheet.create({
 })
 
 export class BasePDFGenerator {
-  static async getCompanyDetails() {
-    try {
-      const response = await companyService.getCompanyDetails()
-      return response.data || null
-    } catch (error) {
-      console.error('Error loading company details:', error)
-      return null
-    }
+  static getCompanyDetails() {
+    return COMPANY_DETAILS
   }
 
   // Helper function to format numbers without weird symbols
@@ -228,7 +227,7 @@ export class BasePDFGenerator {
     try {
       console.log('Starting invoice PDF generation for:', invoice.invoiceNo)
       
-      const companyDetails = await this.getCompanyDetails()
+      const companyDetails = this.getCompanyDetails()
       const currentDate = new Date().toLocaleDateString('en-IN')
       const invoiceDate = invoice.date || currentDate
       
@@ -238,7 +237,7 @@ export class BasePDFGenerator {
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.companyName}>
-                {companyDetails?.businessName || 'Your Business Name'}
+                {companyDetails.businessName}
               </Text>
               <Text style={styles.title}>TAX INVOICE</Text>
               <Text style={styles.number}>Invoice #{invoice.invoiceNo}</Text>
@@ -268,15 +267,11 @@ export class BasePDFGenerator {
                   <Text style={styles.infoTitle}>From</Text>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.businessName || 'Your Business Name'}</Text>
+                    <Text style={styles.infoValue}>{companyDetails.businessName}</Text>
                   </View>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
+                    <Text style={styles.infoValue}>{companyDetails.phoneNumber1}</Text>
                   </View>
                 </View>
               </View>
@@ -329,7 +324,7 @@ export class BasePDFGenerator {
                   <Text style={styles.signatureTitle}>Authorized Signature</Text>
                   <View style={styles.signatureLine} />
                   <Text style={styles.signatureName}>
-                    {companyDetails?.businessName || 'Authorized Person'}
+                    {companyDetails.businessName}
                   </Text>
                 </View>
               </View>
@@ -339,7 +334,7 @@ export class BasePDFGenerator {
       )
 
       const pdfBlob = await pdf(<InvoiceDocument />).toBlob()
-      const fileName = `invoice-${invoice.invoiceNo}-${Date.now()}.pdf`
+      const fileName = `Invoice-${invoice.invoiceNo}.pdf`
 
       return {
         success: true,
@@ -358,7 +353,7 @@ export class BasePDFGenerator {
   // Purchase Bill PDF Generation
   static async generatePurchaseBillPDF(bill) {
     try {
-      const companyDetails = await this.getCompanyDetails()
+      const companyDetails = this.getCompanyDetails()
       const currentDate = new Date().toLocaleDateString('en-IN')
       const billDate = bill.date || currentDate
       
@@ -368,7 +363,7 @@ export class BasePDFGenerator {
             {/* Header */}
             <View style={[styles.header, { backgroundColor: '#dc2626' }]}>
               <Text style={styles.companyName}>
-                {companyDetails?.businessName || 'Your Business Name'}
+                {companyDetails.businessName}
               </Text>
               <Text style={styles.title}>PURCHASE BILL</Text>
               <Text style={styles.number}>Bill #{bill.billNo}</Text>
@@ -398,15 +393,11 @@ export class BasePDFGenerator {
                   <Text style={[styles.infoTitle, { color: '#dc2626', borderBottom: '2px solid #dc2626' }]}>Bill To</Text>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.businessName || 'Your Business Name'}</Text>
+                    <Text style={styles.infoValue}>{companyDetails.businessName}</Text>
                   </View>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
+                    <Text style={styles.infoValue}>{companyDetails.phoneNumber1}</Text>
                   </View>
                 </View>
               </View>
@@ -459,7 +450,7 @@ export class BasePDFGenerator {
                   <Text style={styles.signatureTitle}>Authorized Signature</Text>
                   <View style={styles.signatureLine} />
                   <Text style={styles.signatureName}>
-                    {companyDetails?.businessName || 'Authorized Person'}
+                    {companyDetails.businessName}
                   </Text>
                 </View>
               </View>
@@ -469,7 +460,7 @@ export class BasePDFGenerator {
       )
 
       const pdfBlob = await pdf(<PurchaseBillDocument />).toBlob()
-      const fileName = `purchase-bill-${bill.billNo}-${Date.now()}.pdf`
+      const fileName = `Purchase-Bill-${bill.billNo}.pdf`
 
       return {
         success: true,
@@ -490,7 +481,7 @@ export class BasePDFGenerator {
     try {
       console.log('Starting payment receipt PDF generation for:', payment.paymentNo)
       
-      const companyDetails = await this.getCompanyDetails()
+      const companyDetails = this.getCompanyDetails()
       // Try to fetch remaining balance (after transaction) from party
       let remainingBalance = null
       try {
@@ -520,7 +511,7 @@ export class BasePDFGenerator {
             {/* Header */}
             <View style={[styles.header, { backgroundColor: headerColor }]}>
               <Text style={styles.companyName}>
-                {companyDetails?.businessName || 'Your Business Name'}
+                {companyDetails.businessName}
               </Text>
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.number}>{documentType} #{payment.paymentNo}</Text>
@@ -554,15 +545,11 @@ export class BasePDFGenerator {
                   </Text>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.businessName || 'Your Business Name'}</Text>
+                    <Text style={styles.infoValue}>{companyDetails.businessName}</Text>
                   </View>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber1 || 'Phone Number'}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails?.phoneNumber2 || 'Phone Number 2'}</Text>
+                    <Text style={styles.infoValue}>{companyDetails.phoneNumber1}</Text>
                   </View>
                 </View>
               </View>
@@ -612,7 +599,7 @@ export class BasePDFGenerator {
                   <Text style={styles.signatureTitle}>Authorized Signature</Text>
                   <View style={styles.signatureLine} />
                   <Text style={styles.signatureName}>
-                    {companyDetails?.businessName || 'Authorized Person'}
+                    {companyDetails.businessName}
                   </Text>
                 </View>
               </View>
@@ -622,7 +609,7 @@ export class BasePDFGenerator {
       )
 
       const pdfBlob = await pdf(<PaymentReceiptDocument />).toBlob()
-      const fileName = `${isPaymentIn ? 'payment-receipt' : 'payment-voucher'}-${payment.paymentNo}-${Date.now()}.pdf`
+      const fileName = `${isPaymentIn ? 'Payment-Receipt' : 'Payment-Voucher'}-${payment.paymentNo}.pdf`
 
       return {
         success: true,

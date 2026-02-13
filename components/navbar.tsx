@@ -13,7 +13,6 @@ import {
   X,
   CreditCard,
 } from "lucide-react"
-import { companyService } from "@/services/company"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -57,59 +56,14 @@ const navItems = [
 export function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
-  const [companyName, setCompanyName] = React.useState("Vignaharta Plastics")
-
-  // Load company name on component mount
-  React.useEffect(() => {
-    const loadCompanyName = async () => {
-      try {
-        const isConnected = await companyService.testConnection()
-        if (!isConnected) return
-        
-        try {
-          const response = await companyService.getCompanyDetails()
-          if (response.success && response.data?.businessName) {
-            setCompanyName(response.data.businessName)
-          }
-        } catch {
-          // Keep default name if company doesn't exist or request fails
-        }
-      } catch {
-        // Keep default name if backend is not available
-      }
-    }
-
-    loadCompanyName()
-  }, [])
-
-  // Reload company name when user returns to the tab
-  React.useEffect(() => {
-    const handleFocus = () => {
-      const reload = async () => {
-        try {
-          const response = await companyService.getCompanyDetails()
-          if (response.success && response.data?.businessName) {
-            setCompanyName(response.data.businessName)
-          } else {
-            setCompanyName("Vignaharta Plastics")
-          }
-        } catch {
-          setCompanyName("Vignaharta Plastics")
-        }
-      }
-      reload()
-    }
-
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [])
+  const companyName = "Vignaharta Plastics"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-6">
         {/* Logo - Left */}
         <div className="flex items-center">
-          <Link href="/company" className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-3">
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Building2 className="size-4" />
             </div>

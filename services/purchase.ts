@@ -218,6 +218,7 @@ export class PurchaseService {
           
           await BasePDFGenerator.generateAndSendPDFOnly(billData, 'purchase-bill', result.data.phoneNumber)
         } catch (pdfError) {
+          console.error('PDF generation/WhatsApp send failed:', pdfError)
           // PDF generation failure shouldn't break the purchase creation
         }
       }

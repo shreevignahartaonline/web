@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +41,7 @@ export default function PaymentsPage() {
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<PaymentCreateData>({
+    paymentNo: '',
     type: 'payment-in',
     partyName: '',
     phoneNumber: '',
@@ -57,6 +58,8 @@ export default function PaymentsPage() {
   const [paymentDetail, setPaymentDetail] = useState<Payment | null>(null)
   const [loadingPaymentDetail, setLoadingPaymentDetail] = useState(false)
   const [generatingPDF, setGeneratingPDF] = useState(false)
+  const [paymentNoError, setPaymentNoError] = useState<string | null>(null)
+  const paymentNoTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -136,6 +139,13 @@ export default function PaymentsPage() {
         return
       }
 
+      // Check if payment number already exists
+      const paymentExists = await PaymentService.isPaymentNumberExists(formData.paymentNo)
+      if (paymentExists) {
+        setPaymentNoError("Payment number already exists. Please use a different number.")
+        return
+      }
+
       setIsSubmitting(true)
       const response = await PaymentService.createPayment(formData)
       
@@ -193,9 +203,26 @@ export default function PaymentsPage() {
     }
   }
 
+  // Check duplicate on payment number change (debounced)
+  const handlePaymentNoChange = (value: string) => {
+    setFormData(prev => ({ ...prev, paymentNo: value }))
+    setPaymentNoError(null)
+    if (paymentNoTimerRef.current) clearTimeout(paymentNoTimerRef.current)
+    if (value.trim()) {
+      paymentNoTimerRef.current = setTimeout(() => {
+        PaymentService.isPaymentNumberExists(value.trim()).then(exists => {
+          if (exists) {
+            setPaymentNoError('Payment number already exists. Please use a different number.')
+          }
+        }).catch(err => console.error('Error checking payment number:', err))
+      }, 500)
+    }
+  }
+
   // Reset form data
   const resetForm = () => {
     setFormData({
+      paymentNo: '',
       type: 'payment-in',
       partyName: '',
       phoneNumber: '',
@@ -206,12 +233,14 @@ export default function PaymentsPage() {
     setEditingPayment(null)
     setShowPartyDropdown(false)
     setFilteredParties([])
+    setPaymentNoError(null)
   }
 
   // Open edit dialog with payment data
   const openEditDialog = (payment: Payment) => {
     setEditingPayment(payment)
     setFormData({
+      paymentNo: payment.paymentNo,
       type: payment.type,
       partyName: payment.partyName,
       phoneNumber: payment.phoneNumber,
@@ -402,6 +431,25 @@ export default function PaymentsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="paymentNo" className="text-right">
+                    Payment No *
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="paymentNo"
+                      value={formData.paymentNo}
+                      onChange={(e) => handlePaymentNoChange(e.target.value)}
+                      className={paymentNoError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                      placeholder="e.g. 1, 2, 3..."
+                    />
+                    {paymentNoError ? (
+                      <p className="text-xs text-red-600 mt-1">{paymentNoError}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">Payment number must be unique</p>
+                    )}
+                  </div>
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="type" className="text-right">
                     Type *
@@ -720,6 +768,25 @@ export default function PaymentsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-paymentNo" className="text-right">
+                Payment No *
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="edit-paymentNo"
+                  value={formData.paymentNo}
+                  onChange={(e) => handlePaymentNoChange(e.target.value)}
+                  className={paymentNoError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                  placeholder="e.g. 1, 2, 3..."
+                />
+                {paymentNoError ? (
+                  <p className="text-xs text-red-600 mt-1">{paymentNoError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">Payment number must be unique</p>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-type" className="text-right">
                 Type *

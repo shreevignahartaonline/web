@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { SaleService, Sale } from '../../services/sale'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
@@ -41,6 +41,8 @@ const SalesPage: React.FC = () => {
   const [itemSearchQuery, setItemSearchQuery] = useState('')
   const [filteredItems, setFilteredItems] = useState<Item[]>([])
   const [showItemSearchBar, setShowItemSearchBar] = useState(false)
+  const [invoiceNoError, setInvoiceNoError] = useState<string | null>(null)
+  const invoiceNoTimerRef = useRef<NodeJS.Timeout | null>(null)
   
   // Bulk selection states
   const [selectedSales, setSelectedSales] = useState<string[]>([])
@@ -99,14 +101,13 @@ const SalesPage: React.FC = () => {
       
       // Validate invoice number
       if (!formData.invoiceNo.trim()) {
-        setError('Invoice number is required')
+        setInvoiceNoError('Invoice number is required')
         return
       }
       
       // Check if invoice number already exists
       const invoiceExists = await checkInvoiceNumberExists(formData.invoiceNo)
       if (invoiceExists) {
-        setError('Invoice number already exists. Please use a different invoice number.')
         return
       }
       
@@ -354,13 +355,31 @@ const SalesPage: React.FC = () => {
   
   const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
 
-  // Helper function to check if invoice number already exists
+  // Check if invoice number already exists (inline)
   const checkInvoiceNumberExists = async (invoiceNo: string): Promise<boolean> => {
     try {
-      return await SaleService.isInvoiceNumberExists(invoiceNo)
+      const exists = await SaleService.isInvoiceNumberExists(invoiceNo)
+      if (exists) {
+        setInvoiceNoError('Invoice number already exists. Please use a different number.')
+      } else {
+        setInvoiceNoError(null)
+      }
+      return exists
     } catch (error) {
       console.error('Error checking invoice number:', error)
       return false
+    }
+  }
+
+  // Check duplicate on invoice number change (debounced)
+  const handleInvoiceNoChange = (value: string) => {
+    setFormData(prev => ({ ...prev, invoiceNo: value }))
+    setInvoiceNoError(null)
+    if (invoiceNoTimerRef.current) clearTimeout(invoiceNoTimerRef.current)
+    if (value.trim()) {
+      invoiceNoTimerRef.current = setTimeout(() => {
+        checkInvoiceNumberExists(value.trim())
+      }, 500)
     }
   }
 
@@ -850,14 +869,18 @@ const SalesPage: React.FC = () => {
                 <input
                   type="text"
                   value={formData.invoiceNo}
-                  onChange={(e) => setFormData(prev => ({ ...prev, invoiceNo: e.target.value }))}
+                  onChange={(e) => handleInvoiceNoChange(e.target.value)}
                   placeholder="Enter invoice number (e.g., INV-2024-001)"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${invoiceNoError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Invoice number must be unique and contain only letters, numbers, hyphens, and underscores
-                </p>
+                {invoiceNoError ? (
+                  <p className="text-xs text-red-600 mt-1">{invoiceNoError}</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Invoice number must be unique
+                  </p>
+                )}
               </div>
 
               {/* Party Information */}

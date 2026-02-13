@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { PurchaseService, Purchase } from '../../services/purchase'
 import { partyService, Party } from '../../services/party'
 import { itemService, Item } from '../../services/item'
@@ -41,6 +41,8 @@ const PurchasePage: React.FC = () => {
   const [itemSearchQuery, setItemSearchQuery] = useState('')
   const [filteredItems, setFilteredItems] = useState<Item[]>([])
   const [showItemSearchBar, setShowItemSearchBar] = useState(false)
+  const [billNoError, setBillNoError] = useState<string | null>(null)
+  const billNoTimerRef = useRef<NodeJS.Timeout | null>(null)
   
   // Bulk selection states
   const [selectedPurchases, setSelectedPurchases] = useState<string[]>([])
@@ -99,14 +101,13 @@ const PurchasePage: React.FC = () => {
       
       // Validate bill number
       if (!formData.billNo.trim()) {
-        setError('Bill number is required')
+        setBillNoError('Bill number is required')
         return
       }
       
       // Check if bill number already exists
       const billExists = await checkBillNumberExists(formData.billNo)
       if (billExists) {
-        setError('Bill number already exists. Please use a different bill number.')
         return
       }
       
@@ -346,13 +347,31 @@ const PurchasePage: React.FC = () => {
   
   const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
 
-  // Helper function to check if bill number already exists
+  // Check if bill number already exists (inline)
   const checkBillNumberExists = async (billNo: string): Promise<boolean> => {
     try {
-      return await PurchaseService.isBillNumberExists(billNo)
+      const exists = await PurchaseService.isBillNumberExists(billNo)
+      if (exists) {
+        setBillNoError('Bill number already exists. Please use a different number.')
+      } else {
+        setBillNoError(null)
+      }
+      return exists
     } catch (error) {
       console.error('Error checking bill number:', error)
       return false
+    }
+  }
+
+  // Check duplicate on bill number change (debounced)
+  const handleBillNoChange = (value: string) => {
+    setFormData(prev => ({ ...prev, billNo: value }))
+    setBillNoError(null)
+    if (billNoTimerRef.current) clearTimeout(billNoTimerRef.current)
+    if (value.trim()) {
+      billNoTimerRef.current = setTimeout(() => {
+        checkBillNumberExists(value.trim())
+      }, 500)
     }
   }
 
@@ -842,14 +861,18 @@ const PurchasePage: React.FC = () => {
                 <input
                   type="text"
                   value={formData.billNo}
-                  onChange={(e) => setFormData(prev => ({ ...prev, billNo: e.target.value }))}
+                  onChange={(e) => handleBillNoChange(e.target.value)}
                   placeholder="Enter bill number (e.g., BILL-2024-001)"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${billNoError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Bill number must be unique and contain only letters, numbers, hyphens, and underscores
-                </p>
+                {billNoError ? (
+                  <p className="text-xs text-red-600 mt-1">{billNoError}</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Bill number must be unique
+                  </p>
+                )}
               </div>
 
               {/* Party Information */}

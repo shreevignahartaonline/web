@@ -156,7 +156,7 @@ export class SaleService {
           
           await BasePDFGenerator.generateAndSendPDFOnly(invoiceData, 'invoice', result.data.phoneNumber)
         } catch (pdfError) {
-          // PDF generation failure shouldn't break the sale creation
+          console.error('PDF generation/WhatsApp send failed:', pdfError)
         }
       }
       

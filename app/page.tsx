@@ -12,27 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  DollarSign,
-  Plus,
-  Search,
-  Phone,
-  Mail,
-  Eye,
-  Edit,
-  Trash2,
-  Loader2,
-  AlertCircle,
-  MapPin,
-  FileText,
-  User,
-  Share2,
-  Printer,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react"
+  Package,ShoppingCart, DollarSign, Plus, Search, Phone, Mail, Eye, Edit, Trash2, Loader2, AlertCircle, MapPin, FileText, User, ChevronLeft, ChevronRight} from "lucide-react"
 import { partyService, Party } from "@/services/party"
 import { SaleService } from "@/services/sale"
 import { PurchaseService } from "@/services/purchase"
@@ -548,22 +528,8 @@ export default function Dashboard() {
                             </p>
                           </div>
                           
-                          {/* Row 3: Share/Print Icons and Date */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <button 
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                title="Share"
-                              >
-                                <Share2 className="h-4 w-4 text-muted-foreground" />
-                              </button>
-                              <button 
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                title="Print"
-                              >
-                                <Printer className="h-4 w-4 text-muted-foreground" />
-                              </button>
-                            </div>
+                          {/* Row 3: Date */}
+                          <div className="flex items-center justify-end">
                             <p className="text-sm text-muted-foreground">{transaction.date}</p>
                           </div>
                         </div>

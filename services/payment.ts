@@ -25,6 +25,7 @@ export interface PaymentFilters {
 }
 
 export interface PaymentCreateData {
+  paymentNo: string
   type: 'payment-in' | 'payment-out'
   partyName: string
   phoneNumber: string
@@ -122,6 +123,17 @@ export class PaymentService {
     } catch (error) {
       console.error('Error fetching payment:', error)
       throw error
+    }
+  }
+
+  // Check if payment number already exists
+  static async isPaymentNumberExists(paymentNo: string): Promise<boolean> {
+    try {
+      const payments = await this.getPayments()
+      return payments.data.some(payment => payment.paymentNo === paymentNo.trim())
+    } catch (error) {
+      console.error('Error checking payment number:', error)
+      return false
     }
   }
 
@@ -329,6 +341,12 @@ export class PaymentService {
   // Validate payment data
   static validatePaymentData(paymentData: PaymentCreateData): { isValid: boolean; errors: string[] } {
     const errors: string[] = []
+
+    if (!paymentData.paymentNo?.trim()) {
+      errors.push('Payment number is required')
+    } else if (!/^[A-Za-z0-9\-_]+$/.test(paymentData.paymentNo.trim())) {
+      errors.push('Payment number can only contain letters, numbers, hyphens, and underscores')
+    }
 
     if (!paymentData.type || !['payment-in', 'payment-out'].includes(paymentData.type)) {
       errors.push('Payment type is required and must be either payment-in or payment-out')
