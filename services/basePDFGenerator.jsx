@@ -3,779 +3,330 @@ import { partyService } from './party'
 import { UploadService } from './upload'
 import React from 'react'
 
-// Hardcoded company details (used in all PDF documents)
-const COMPANY_DETAILS = {
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const COMPANY = {
   businessName: 'Vignaharta Plastics',
   phoneNumber1: '+919834049202',
 }
 
-// Define styles for PDF documents
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: 'column',
-    backgroundColor: '#ffffff',
-    padding: 20,
-    fontFamily: 'Helvetica',
-  },
-  header: {
-    backgroundColor: '#6366f1',
-    color: 'white',
-    padding: 30,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  companyName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: 'white',
-  },
-  companyDescription: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: 'white',
-    opacity: 0.9,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: 'white',
-  },
-  number: {
-    fontSize: 18,
-    color: 'white',
-    opacity: 0.9,
-  },
-  content: {
-    padding: 15,
-  },
-  infoSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  infoBlock: {
-    flex: 1,
-    marginRight: 20,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#6366f1',
-    marginBottom: 10,
-    borderBottom: '2px solid #6366f1',
-    paddingBottom: 5,
-  },
-  infoItem: {
-    marginBottom: 8,
-    fontSize: 14,
-    flexDirection: 'row',
-  },
-  infoLabel: {
-    fontWeight: 'bold',
-    color: '#666666',
-    marginRight: 5,
-  },
-  infoValue: {
-    color: '#333333',
-  },
-  table: {
-    width: '100%',
-    marginVertical: 20,
-  },
-  tableHeader: {
-    backgroundColor: '#6366f1',
-    color: 'white',
-    flexDirection: 'row',
-    padding: 15,
-  },
-  tableHeaderCell: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottom: '1px solid #e5e7eb',
-    padding: 12,
-    backgroundColor: '#f9fafb',
-  },
-  tableCell: {
-    flex: 1,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  tableCellLeft: {
-    flex: 1,
-    fontSize: 12,
-    textAlign: 'left',
-  },
-  tableCellRight: {
-    flex: 1,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  totalSection: {
-    marginTop: 30,
-    alignItems: 'flex-end',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    fontSize: 16,
-    width: '50%',
-  },
-  totalLabel: {
-    fontWeight: 'bold',
-    color: '#6b7280',
-  },
-  totalAmount: {
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  grandTotal: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#6366f1',
-    borderTop: '2px solid #e5e7eb',
-    paddingTop: 10,
-    marginTop: 10,
-  },
-  footer: {
-    marginTop: 20,
-    paddingTop: 15,
-    borderTop: '1px solid #e5e7eb',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  signatureSection: {
-    alignItems: 'center',
-  },
-  signatureTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#6b7280',
-    marginBottom: 10,
-  },
-  signatureLine: {
-    width: 150,
-    height: 1,
-    backgroundColor: '#6b7280',
-    marginBottom: 5,
-  },
-  signatureName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  paymentDetails: {
-    backgroundColor: '#f0f9ff',
-    border: '2px solid #6366f1',
-    borderRadius: 12,
-    padding: 24,
-    marginVertical: 20,
-  },
-  paymentDetailsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6366f1',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottom: '1px solid #6366f1',
-  },
-  paymentLabel: {
-    fontWeight: 'bold',
-    color: '#374151',
-    fontSize: 16,
-  },
-  paymentAmount: {
-    fontWeight: 'bold',
-    color: '#6366f1',
-    fontSize: 18,
-  },
+// ─── Shared Styles ────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  page:         { flexDirection: 'column', backgroundColor: '#fafaf8', padding: 0, fontFamily: 'Helvetica' },
+  // Header band
+  headerBand:   { paddingHorizontal: 36, paddingVertical: 28, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  headerLeft:   { flex: 1 },
+  companyName:  { fontSize: 22, fontFamily: 'Helvetica-Bold', color: '#fff', letterSpacing: 0.5 },
+  companyPhone: { fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
+  headerRight:  { alignItems: 'flex-end' },
+  docLabel:     { fontSize: 10, color: 'rgba(255,255,255,0.7)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 },
+  docNumber:    { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#fff' },
+  // Divider stripe
+  stripe:       { height: 4, opacity: 0.15, backgroundColor: '#000' },
+  // Body
+  body:         { paddingHorizontal: 36, paddingTop: 28, paddingBottom: 20 },
+  // Info section
+  infoRow:      { flexDirection: 'row', marginBottom: 28, gap: 20 },
+  infoBox:      { flex: 1, backgroundColor: '#fff', borderRadius: 8, padding: 16, border: '1px solid #e8e5df' },
+  infoBoxLabel: { fontSize: 8, letterSpacing: 1.8, color: '#9ca3af', fontFamily: 'Helvetica-Bold', marginBottom: 10, textTransform: 'uppercase' },
+  infoLine:     { flexDirection: 'row', marginBottom: 6 },
+  infoKey:      { fontSize: 11, color: '#6b7280', width: 55 },
+  infoVal:      { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#1f2937', flex: 1 },
+  // Table
+  tableWrap:    { marginBottom: 24 },
+  tableHead:    { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 6 },
+  tableHeadCell:{ fontSize: 9, letterSpacing: 1.2, color: 'rgba(255,255,255,0.95)', fontFamily: 'Helvetica-Bold', flex: 1, textAlign: 'center', textTransform: 'uppercase' },
+  tableHeadL:   { textAlign: 'left' },
+  tableHeadR:   { textAlign: 'right' },
+  tableRow:     { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 11, borderBottom: '1px solid #eeece7' },
+  tableRowAlt:  { backgroundColor: '#fff' },
+  tableCell:    { flex: 1, fontSize: 11, textAlign: 'center', color: '#374151' },
+  tableCellL:   { textAlign: 'left', fontFamily: 'Helvetica-Bold', color: '#111827' },
+  tableCellR:   { textAlign: 'right' },
+  tableFoot:    { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 6, marginTop: 2 },
+  tableFootCell:{ flex: 1, fontSize: 10, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
+  // Totals
+  totalsBox:    { alignSelf: 'flex-end', width: 260, backgroundColor: '#fff', borderRadius: 10, border: '1px solid #e8e5df', overflow: 'hidden', marginBottom: 28 },
+  totalRow:     { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 10, borderBottom: '1px solid #f0ede8' },
+  totalLabel:   { fontSize: 11, color: '#6b7280' },
+  totalAmt:     { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#374151' },
+  grandRow:     { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 14 },
+  grandLabel:   { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#fff' },
+  grandAmt:     { fontSize: 15, fontFamily: 'Helvetica-Bold', color: '#fff' },
+  // Payment card
+  payCard:      { backgroundColor: '#fff', borderRadius: 10, border: '1px solid #e8e5df', padding: 20, marginBottom: 24 },
+  payCardTitle: { fontSize: 9, letterSpacing: 1.8, color: '#9ca3af', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 14 },
+  payRow:       { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottom: '1px solid #f0ede8' },
+  payRowLast:   { borderBottom: 'none', paddingVertical: 14 },
+  payKey:       { fontSize: 12, color: '#6b7280' },
+  payVal:       { fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  payValXl:     { fontSize: 18 },
+  // Footer
+  footer:       { paddingHorizontal: 36, paddingTop: 16, paddingBottom: 24, flexDirection: 'row', justifyContent: 'flex-end', borderTop: '1px solid #e8e5df', marginTop: 'auto' },
+  sigTitle:     { fontSize: 9, color: '#9ca3af', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 28, textAlign: 'center', fontFamily: 'Helvetica-Bold' },
+  sigLine:      { height: 1, backgroundColor: '#d1d5db', width: 140, marginBottom: 6 },
+  sigName:      { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#374151', textAlign: 'center' },
 })
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-IN') : '0')
+const bags = (qty) => (typeof qty === 'number' ? Math.ceil(qty / 30) : 0)
+const totalBags = (items) => items.reduce((acc, item) => acc + bags(item.quantity), 0)
+
+// ─── Layout Component ─────────────────────────────────────────────────────────
+
+const DocLayout = ({ accent, label, number, billFrom, billTo, children }) => (
+  <Document>
+    <Page size="A4" style={s.page}>
+      {/* Header */}
+      <View style={[s.headerBand, { backgroundColor: accent }]}>
+        <View style={s.headerLeft}>
+          <Text style={s.companyName}>{COMPANY.businessName}</Text>
+          <Text style={s.companyPhone}>{COMPANY.phoneNumber1}</Text>
+        </View>
+        <View style={s.headerRight}>
+          <Text style={s.docLabel}>{label}</Text>
+          <Text style={s.docNumber}>#{number}</Text>
+        </View>
+      </View>
+      <View style={[s.stripe, { backgroundColor: accent }]} />
+
+      <View style={s.body}>
+        {/* Info cards */}
+        <View style={s.infoRow}>
+          {[billFrom, billTo].map((info, i) => (
+            <View key={i} style={s.infoBox}>
+              <Text style={s.infoBoxLabel}>{info.title}</Text>
+              {info.rows.map((r, j) => (
+                <View key={j} style={s.infoLine}>
+                  <Text style={s.infoKey}>{r.k}</Text>
+                  <Text style={s.infoVal}>{r.v}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+
+        {children}
+      </View>
+
+      {/* Footer */}
+      <View style={s.footer}>
+        <View>
+          <Text style={s.sigTitle}>Authorized Signature</Text>
+          <View style={s.sigLine} />
+          <Text style={s.sigName}>{COMPANY.businessName}</Text>
+        </View>
+      </View>
+    </Page>
+  </Document>
+)
+
+// ─── Shared Items Table ───────────────────────────────────────────────────────
+
+const ItemsTable = ({ items, accent, footBg }) => (
+  <View style={s.tableWrap}>
+    <View style={[s.tableHead, { backgroundColor: accent }]}>
+      {['Item', 'Qty (kg)', 'Bags', 'Rate', 'Amount'].map((h, i) => (
+        <Text key={i} style={[s.tableHeadCell, i === 0 && s.tableHeadL, i === 4 && s.tableHeadR]}>{h}</Text>
+      ))}
+    </View>
+    {items.map((item, i) => (
+      <View key={i} style={[s.tableRow, i % 2 === 0 && s.tableRowAlt]}>
+        <Text style={[s.tableCell, s.tableCellL]}>{item.itemName}</Text>
+        <Text style={s.tableCell}>{fmt(item.quantity)}</Text>
+        <Text style={s.tableCell}>{bags(item.quantity)}</Text>
+        <Text style={[s.tableCell, s.tableCellR]}>{fmt(item.rate)}</Text>
+        <Text style={[s.tableCell, s.tableCellR]}>{fmt(item.total)}</Text>
+      </View>
+    ))}
+    <View style={[s.tableFoot, { backgroundColor: footBg }]}>
+      <Text style={[s.tableFootCell, { textAlign: 'left', color: accent }]}>Total Bags</Text>
+      <Text style={s.tableFootCell}></Text>
+      <Text style={[s.tableFootCell, { color: accent }]}>{totalBags(items)}</Text>
+      <Text style={s.tableFootCell}></Text>
+      <Text style={s.tableFootCell}></Text>
+    </View>
+  </View>
+)
+
+// ─── Totals Box ───────────────────────────────────────────────────────────────
+
+const TotalsBox = ({ amount, accent }) => (
+  <View style={s.totalsBox}>
+    <View style={s.totalRow}>
+      <Text style={s.totalLabel}>Subtotal</Text>
+      <Text style={s.totalAmt}>{fmt(amount)}</Text>
+    </View>
+    <View style={[s.grandRow, { backgroundColor: accent }]}>
+      <Text style={s.grandLabel}>Grand Total</Text>
+      <Text style={s.grandAmt}>{fmt(amount)}</Text>
+    </View>
+  </View>
+)
+
+// ─── PDF Generators ───────────────────────────────────────────────────────────
+
 export class BasePDFGenerator {
-  static getCompanyDetails() {
-    return COMPANY_DETAILS
+  static formatNumber = fmt
+
+  static async generateInvoicePDF(inv) {
+    const accent = '#4f46e5'
+    const doc = (
+      <DocLayout
+        accent={accent}
+        label="Tax Invoice"
+        number={inv.invoiceNo}
+        billFrom={{ title: 'From', rows: [{ k: 'Business', v: COMPANY.businessName }, { k: 'Phone', v: COMPANY.phoneNumber1 }] }}
+        billTo={{ title: 'Bill To', rows: [{ k: 'Name', v: inv.partyName }, { k: 'Phone', v: inv.phoneNumber }, { k: 'Date', v: inv.date || new Date().toLocaleDateString('en-IN') }] }}
+      >
+        <ItemsTable items={inv.items} accent={accent} footBg="#eef2ff" />
+        <TotalsBox amount={inv.totalAmount} accent={accent} />
+      </DocLayout>
+    )
+    return this._blob(doc, `Invoice-${inv.invoiceNo}.pdf`)
   }
 
-  // Helper function to format numbers without weird symbols
-  static formatNumber(number) {
-    if (typeof number !== 'number') return '0'
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  }
-
-  // Helper function to calculate bags (30kg = 1 bag)
-  static calculateBags(quantity) {
-    if (typeof quantity !== 'number') return '0'
-    const bags = quantity / 30
-    return Math.ceil(bags).toString()
-  }
-
-  // Invoice PDF Generation
-  static async generateInvoicePDF(invoice) {
-    try {
-      console.log('Starting invoice PDF generation for:', invoice.invoiceNo)
-      
-      const companyDetails = this.getCompanyDetails()
-      const currentDate = new Date().toLocaleDateString('en-IN')
-      const invoiceDate = invoice.date || currentDate
-      
-      const InvoiceDocument = () => (
-        <Document>
-          <Page size="A4" style={styles.page}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.companyName}>
-                {companyDetails.businessName}
-              </Text>
-              <Text style={styles.title}>TAX INVOICE</Text>
-              <Text style={styles.number}>Invoice #{invoice.invoiceNo}</Text>
-            </View>
-
-            {/* Content */}
-            <View style={styles.content}>
-              {/* Info Section */}
-              <View style={styles.infoSection}>
-                <View style={styles.infoBlock}>
-                  <Text style={styles.infoTitle}>Bill To</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Name:</Text>
-                    <Text style={styles.infoValue}>{invoice.partyName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{invoice.phoneNumber}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Date:</Text>
-                    <Text style={styles.infoValue}>{invoiceDate}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.infoBlock}>
-                  <Text style={styles.infoTitle}>From</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails.businessName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails.phoneNumber1}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Items Table */}
-              <View style={styles.table}>
-                <View style={styles.tableHeader}>
-                  <Text style={styles.tableHeaderCell}>Items</Text>
-                  <Text style={styles.tableHeaderCell}>Quantity</Text>
-                  <Text style={styles.tableHeaderCell}>Bags</Text>
-                  <Text style={styles.tableHeaderCell}>Rate</Text>
-                  <Text style={styles.tableHeaderCell}>Amount</Text>
-                </View>
-                {invoice.items.map((item, index) => (
-                  <View key={index} style={styles.tableRow}>
-                    <Text style={styles.tableCellLeft}>{item.itemName}</Text>
-                    <Text style={styles.tableCell}>{this.formatNumber(item.quantity)}</Text>
-                    <Text style={styles.tableCell}>{this.calculateBags(item.quantity)}</Text>
-                    <Text style={styles.tableCellRight}>{this.formatNumber(item.rate)}</Text>
-                    <Text style={styles.tableCellRight}>{this.formatNumber(item.total)}</Text>
-                  </View>
-                ))}
-                {/* Total Bags Row */}
-                <View style={[styles.tableRow, { backgroundColor: '#f3f4f6', borderTop: '2px solid #6366f1' }]}>
-                  <Text style={styles.tableCellLeft}>Total Bags:</Text>
-                  <Text style={styles.tableCell}></Text>
-                  <Text style={[styles.tableCell, { fontWeight: 'bold', color: '#6366f1' }]}>
-                    {this.formatNumber(invoice.items.reduce((total, item) => total + parseInt(this.calculateBags(item.quantity)), 0))}
-                  </Text>
-                  <Text style={styles.tableCellRight}></Text>
-                  <Text style={styles.tableCellRight}></Text>
-                </View>
-              </View>
-
-              {/* Total Section */}
-              <View style={styles.totalSection}>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total Amount:</Text>
-                  <Text style={styles.totalAmount}>{this.formatNumber(invoice.totalAmount)}</Text>
-                </View>
-                <View style={[styles.totalRow, styles.grandTotal]}>
-                  <Text style={styles.totalLabel}>Grand Total:</Text>
-                  <Text style={styles.totalAmount}>{this.formatNumber(invoice.totalAmount)}</Text>
-                </View>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.footer}>
-                <View style={styles.signatureSection}>
-                  <Text style={styles.signatureTitle}>Authorized Signature</Text>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureName}>
-                    {companyDetails.businessName}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Page>
-        </Document>
-      )
-
-      const pdfBlob = await pdf(<InvoiceDocument />).toBlob()
-      const fileName = `Invoice-${invoice.invoiceNo}.pdf`
-
-      return {
-        success: true,
-        pdfBlob,
-        fileName
-      }
-    } catch (error) {
-      console.error('Error generating invoice PDF:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate invoice PDF'
-      }
-    }
-  }
-
-  // Purchase Bill PDF Generation
   static async generatePurchaseBillPDF(bill) {
-    try {
-      const companyDetails = this.getCompanyDetails()
-      const currentDate = new Date().toLocaleDateString('en-IN')
-      const billDate = bill.date || currentDate
-      
-      const PurchaseBillDocument = () => (
-        <Document>
-          <Page size="A4" style={styles.page}>
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: '#dc2626' }]}>
-              <Text style={styles.companyName}>
-                {companyDetails.businessName}
-              </Text>
-              <Text style={styles.title}>PURCHASE BILL</Text>
-              <Text style={styles.number}>Bill #{bill.billNo}</Text>
-            </View>
-
-            {/* Content */}
-            <View style={styles.content}>
-              {/* Info Section */}
-              <View style={styles.infoSection}>
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: '#dc2626', borderBottom: '2px solid #dc2626' }]}>Bill From</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Supplier:</Text>
-                    <Text style={styles.infoValue}>{bill.partyName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{bill.phoneNumber}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Date:</Text>
-                    <Text style={styles.infoValue}>{billDate}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: '#dc2626', borderBottom: '2px solid #dc2626' }]}>Bill To</Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails.businessName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails.phoneNumber1}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Items Table */}
-              <View style={styles.table}>
-                <View style={[styles.tableHeader, { backgroundColor: '#dc2626' }]}>
-                  <Text style={styles.tableHeaderCell}>Items</Text>
-                  <Text style={styles.tableHeaderCell}>Quantity</Text>
-                  <Text style={styles.tableHeaderCell}>Bags</Text>
-                  <Text style={styles.tableHeaderCell}>Rate</Text>
-                  <Text style={styles.tableHeaderCell}>Amount</Text>
-                </View>
-                {bill.items.map((item, index) => (
-                  <View key={index} style={styles.tableRow}>
-                    <Text style={styles.tableCellLeft}>{item.itemName}</Text>
-                    <Text style={styles.tableCell}>{this.formatNumber(item.quantity)}</Text>
-                    <Text style={styles.tableCell}>{this.calculateBags(item.quantity)}</Text>
-                    <Text style={styles.tableCellRight}>{this.formatNumber(item.rate)}</Text>
-                    <Text style={styles.tableCellRight}>{this.formatNumber(item.total)}</Text>
-                  </View>
-                ))}
-                {/* Total Bags Row */}
-                <View style={[styles.tableRow, { backgroundColor: '#fef2f2', borderTop: '2px solid #dc2626' }]}>
-                  <Text style={styles.tableCellLeft}>Total Bags:</Text>
-                  <Text style={styles.tableCell}></Text>
-                  <Text style={[styles.tableCell, { fontWeight: 'bold', color: '#dc2626' }]}>
-                    {this.formatNumber(bill.items.reduce((total, item) => total + parseInt(this.calculateBags(item.quantity)), 0))}
-                  </Text>
-                  <Text style={styles.tableCellRight}></Text>
-                  <Text style={styles.tableCellRight}></Text>
-                </View>
-              </View>
-
-              {/* Total Section */}
-              <View style={styles.totalSection}>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total Amount:</Text>
-                  <Text style={styles.totalAmount}>{this.formatNumber(bill.totalAmount)}</Text>
-                </View>
-                <View style={[styles.totalRow, styles.grandTotal, { color: '#dc2626' }]}>
-                  <Text style={styles.totalLabel}>Grand Total:</Text>
-                  <Text style={styles.totalAmount}>{this.formatNumber(bill.totalAmount)}</Text>
-                </View>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.footer}>
-                <View style={styles.signatureSection}>
-                  <Text style={styles.signatureTitle}>Authorized Signature</Text>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureName}>
-                    {companyDetails.businessName}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Page>
-        </Document>
-      )
-
-      const pdfBlob = await pdf(<PurchaseBillDocument />).toBlob()
-      const fileName = `Purchase-Bill-${bill.billNo}.pdf`
-
-      return {
-        success: true,
-        pdfBlob,
-        fileName
-      }
-    } catch (error) {
-      console.error('Error generating purchase bill PDF:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate purchase bill PDF'
-      }
-    }
+    const accent = '#dc2626'
+    const doc = (
+      <DocLayout
+        accent={accent}
+        label="Purchase Bill"
+        number={bill.billNo}
+        billFrom={{ title: 'Bill From', rows: [{ k: 'Supplier', v: bill.partyName }, { k: 'Phone', v: bill.phoneNumber }, { k: 'Date', v: bill.date || new Date().toLocaleDateString('en-IN') }] }}
+        billTo={{ title: 'Bill To', rows: [{ k: 'Business', v: COMPANY.businessName }, { k: 'Phone', v: COMPANY.phoneNumber1 }] }}
+      >
+        <ItemsTable items={bill.items} accent={accent} footBg="#fef2f2" />
+        <TotalsBox amount={bill.totalAmount} accent={accent} />
+      </DocLayout>
+    )
+    return this._blob(doc, `Purchase-Bill-${bill.billNo}.pdf`)
   }
 
-  // Payment Receipt PDF Generation
   static async generatePaymentReceiptPDF(payment) {
+    const isIn = payment.type === 'payment-in'
+    const accent = isIn ? '#059669' : '#dc2626'
+    const label = isIn ? 'Payment Receipt' : 'Payment Voucher'
+    const prefix = isIn ? 'Payment-Receipt' : 'Payment-Voucher'
+
+    let remainingBalance = 0
     try {
-      console.log('Starting payment receipt PDF generation for:', payment.paymentNo)
-      
-      const companyDetails = this.getCompanyDetails()
-      // Try to fetch remaining balance (after transaction) from party
-      let remainingBalance = null
-      try {
-        const partiesResponse = await partyService.getParties()
-        const parties = partiesResponse?.data || []
-        const matchedParty = parties.find(p => (
-          (p.name && p.name === payment.partyName) && (p.phoneNumber && p.phoneNumber === payment.phoneNumber)
-        )) || parties.find(p => p.name === payment.partyName) || null
-        remainingBalance = matchedParty?.balance ?? null
-      } catch (e) {
-        console.warn('Could not load party balance for PDF. Proceeding without it.')
-      }
-      const currentDate = new Date().toLocaleDateString('en-IN')
-      const paymentDate = payment.date || currentDate
-      
-      const isPaymentIn = payment.type === 'payment-in'
-      const headerColor = isPaymentIn ? '#059669' : '#dc2626' // Green for payment-in, red for payment-out
-      const title = isPaymentIn ? 'PAYMENT RECEIPT' : 'PAYMENT VOUCHER'
-      const documentType = isPaymentIn ? 'Receipt' : 'Voucher'
-      const amountLabel = isPaymentIn ? 'Amount Received' : 'Amount Paid'
-      const afterBalance = typeof remainingBalance === 'number' ? remainingBalance : 0
-      const outstandingBefore = isPaymentIn ? afterBalance + (payment.amount || 0) : afterBalance - (payment.amount || 0)
-      
-      const PaymentReceiptDocument = () => (
-        <Document>
-          <Page size="A4" style={styles.page}>
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: headerColor }]}>
-              <Text style={styles.companyName}>
-                {companyDetails.businessName}
-              </Text>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.number}>{documentType} #{payment.paymentNo}</Text>
+      const parties = (await partyService.getParties())?.data || []
+      const match = parties.find(p => p.name === payment.partyName && p.phoneNumber === payment.phoneNumber)
+                 || parties.find(p => p.name === payment.partyName)
+      remainingBalance = match?.balance ?? 0
+    } catch { /* proceed without balance */ }
+
+    const balanceBefore = isIn
+      ? remainingBalance + (payment.amount || 0)
+      : remainingBalance - (payment.amount || 0)
+
+    const doc = (
+      <DocLayout
+        accent={accent}
+        label={label}
+        number={payment.paymentNo}
+        billFrom={{ title: isIn ? 'Received From' : 'Paid To', rows: [{ k: 'Name', v: payment.partyName }, { k: 'Phone', v: payment.phoneNumber }, { k: 'Date', v: payment.date || new Date().toLocaleDateString('en-IN') }] }}
+        billTo={{ title: isIn ? 'Received By' : 'Paid By', rows: [{ k: 'Business', v: COMPANY.businessName }, { k: 'Phone', v: COMPANY.phoneNumber1 }] }}
+      >
+        {/* Payment detail card */}
+        <View style={s.payCard}>
+          <Text style={s.payCardTitle}>Payment Details</Text>
+          {[
+            { k: 'Type',                v: isIn ? 'Payment In' : 'Payment Out' },
+            { k: 'Outstanding Before',  v: fmt(balanceBefore) },
+            { k: isIn ? 'Received' : 'Paid', v: fmt(payment.amount) },
+          ].map((r, i) => (
+            <View key={i} style={s.payRow}>
+              <Text style={s.payKey}>{r.k}</Text>
+              <Text style={[s.payVal, { color: accent }]}>{r.v}</Text>
             </View>
+          ))}
+          <View style={[s.payRow, s.payRowLast]}>
+            <Text style={s.payKey}>Remaining Balance</Text>
+            <Text style={[s.payVal, s.payValXl, { color: accent }]}>{fmt(remainingBalance)}</Text>
+          </View>
+        </View>
 
-            {/* Content */}
-            <View style={styles.content}>
-              {/* Info Section */}
-              <View style={styles.infoSection}>
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: headerColor, borderBottom: `2px solid ${headerColor}` }]}>
-                    {isPaymentIn ? 'Received From' : 'Paid To'}
-                  </Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Name:</Text>
-                    <Text style={styles.infoValue}>{payment.partyName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{payment.phoneNumber}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Date:</Text>
-                    <Text style={styles.infoValue}>{paymentDate}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.infoBlock}>
-                  <Text style={[styles.infoTitle, { color: headerColor, borderBottom: `2px solid ${headerColor}` }]}>
-                    {isPaymentIn ? 'Received By' : 'Paid By'}
-                  </Text>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Business:</Text>
-                    <Text style={styles.infoValue}>{companyDetails.businessName}</Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{companyDetails.phoneNumber1}</Text>
-                  </View>
-                </View>
-              </View>
+        {/* Grand total */}
+        <View style={[s.totalsBox, { alignSelf: 'flex-end' }]}>
+          <View style={[s.grandRow, { backgroundColor: accent }]}>
+            <Text style={s.grandLabel}>Total {isIn ? 'Received' : 'Paid'}</Text>
+            <Text style={s.grandAmt}>{fmt(payment.amount)}</Text>
+          </View>
+        </View>
+      </DocLayout>
+    )
+    return this._blob(doc, `${prefix}-${payment.paymentNo}.pdf`)
+  }
 
-              {/* Payment Details Section */}
-              <View style={[styles.paymentDetails, { borderColor: headerColor }]}>
-                <Text style={[styles.paymentDetailsTitle, { color: headerColor }]}>
-                  Payment Details
-                </Text>
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Payment Type:</Text>
-                  <Text style={[styles.paymentAmount, { color: headerColor }]}>
-                    {isPaymentIn ? 'Payment In' : 'Payment Out'}
-                  </Text>
-                </View>
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Outstanding Balance :</Text>
-                  <Text style={[styles.paymentAmount, { color: headerColor }]}>
-                    {String(outstandingBefore)}
-                  </Text>
-                </View>
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>{amountLabel}:</Text>
-                  <Text style={[styles.paymentAmount, { color: headerColor }]}>
-                    {String(payment.amount)}
-                  </Text>
-                </View>
-                <View style={[styles.paymentRow, { borderBottom: 'none' }]}>
-                  <Text style={styles.paymentLabel}>Remaining Balance :</Text>
-                  <Text style={[styles.paymentAmount, { color: headerColor, fontSize: 18 }]}>
-                    {String(afterBalance)}
-                  </Text>
-                </View>
-              </View>
+  // ─── Internal blob helper ──────────────────────────────────────────────────
 
-              {/* Total Section */}
-              <View style={styles.totalSection}>
-                <View style={[styles.totalRow, styles.grandTotal, { color: headerColor }]}>
-                  <Text style={styles.totalLabel}>Total {isPaymentIn ? 'Received' : 'Paid'}:</Text>
-                  <Text style={styles.totalAmount}>{String(payment.amount)}</Text>
-                </View>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.footer}>
-                <View style={styles.signatureSection}>
-                  <Text style={styles.signatureTitle}>Authorized Signature</Text>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureName}>
-                    {companyDetails.businessName}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Page>
-        </Document>
-      )
-
-      const pdfBlob = await pdf(<PaymentReceiptDocument />).toBlob()
-      const fileName = `${isPaymentIn ? 'Payment-Receipt' : 'Payment-Voucher'}-${payment.paymentNo}.pdf`
-
-      return {
-        success: true,
-        pdfBlob,
-        fileName
-      }
+  static async _blob(docElement, fileName) {
+    try {
+      const pdfBlob = await pdf(docElement).toBlob()
+      return { success: true, pdfBlob, fileName }
     } catch (error) {
-      console.error('Error generating payment receipt PDF:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate payment receipt PDF'
-      }
+      console.error('PDF generation error:', error)
+      return { success: false, error: error?.message || 'Failed to generate PDF' }
     }
   }
 
+  // ─── WhatsApp / Upload ─────────────────────────────────────────────────────
 
-
-
-  // Simplified method: Generate PDF and send via WhatsApp only (no opening)
   static async generateAndSendPDFOnly(documentData, documentType, partyPhoneNumber, customMessage = '') {
-    try {
-      console.log('🚀 Starting PDF generation and WhatsApp send...', { documentType, partyPhoneNumber })
-      
-      // Generate PDF based on document type
-      let pdfResult
-      switch (documentType) {
-        case 'invoice':
-          pdfResult = await this.generateInvoicePDF(documentData)
-          break
-        case 'purchase-bill':
-          pdfResult = await this.generatePurchaseBillPDF(documentData)
-          break
-        case 'payment-receipt':
-        case 'payment-voucher':
-          pdfResult = await this.generatePaymentReceiptPDF(documentData)
-          break
-        default:
-          throw new Error(`Unsupported document type: ${documentType}`)
-      }
-
-      console.log('📄 PDF generation result:', pdfResult)
-
-      if (!pdfResult.success) {
-        console.error('❌ PDF generation failed:', pdfResult.error)
-        return {
-          success: false,
-          error: pdfResult.error || 'Failed to generate PDF'
-        }
-      }
-
-      // Prepare WhatsApp data
-      const whatsappData = {
-        phoneNumber: partyPhoneNumber,
-        documentUrl: '', // Will be set after upload
-        fileName: pdfResult.fileName,
-        message: customMessage || UploadService.generateDefaultMessage(documentType, pdfResult.fileName),
-        documentType: documentType,
-        ...this.extractDocumentSpecificData(documentData, documentType)
-      }
-
-      console.log('📱 WhatsApp data prepared:', whatsappData)
-
-      // Upload and send via WhatsApp
-      const result = await UploadService.uploadAndSendPDF(pdfResult.pdfBlob, pdfResult.fileName, whatsappData)
-      
-      console.log('📤 Upload and send result:', result)
-      
-      return result
-    } catch (error) {
-      console.error('❌ Error in generateAndSendPDFOnly:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to generate and send PDF'
-      }
+    const generators = {
+      'invoice':          () => this.generateInvoicePDF(documentData),
+      'purchase-bill':    () => this.generatePurchaseBillPDF(documentData),
+      'payment-receipt':  () => this.generatePaymentReceiptPDF(documentData),
+      'payment-voucher':  () => this.generatePaymentReceiptPDF(documentData),
     }
+    const generate = generators[documentType]
+    if (!generate) return { success: false, error: `Unsupported document type: ${documentType}` }
+
+    const pdfResult = await generate()
+    if (!pdfResult.success) return pdfResult
+
+    const whatsappData = {
+      phoneNumber: partyPhoneNumber,
+      documentUrl: '',
+      fileName: pdfResult.fileName,
+      message: customMessage || UploadService.generateDefaultMessage(documentType, pdfResult.fileName),
+      documentType,
+      ...this._documentMeta(documentData, documentType),
+    }
+    return UploadService.uploadAndSendPDF(pdfResult.pdfBlob, pdfResult.fileName, whatsappData)
   }
 
-  /**
-   * Extract document-specific data for WhatsApp
-   * @param documentData - Document data
-   * @param documentType - Type of document
-   * @returns Object with document-specific fields
-   */
-  static extractDocumentSpecificData(documentData, documentType) {
-    switch (documentType) {
-      case 'invoice':
-        return {
-          invoiceNo: documentData.invoiceNo,
-          customerName: documentData.partyName,
-          amount: documentData.totalAmount
-        }
-      case 'purchase-bill':
-        return {
-          billNo: documentData.billNo,
-          supplierName: documentData.partyName,
-          amount: documentData.totalAmount
-        }
-      case 'payment-receipt':
-        return {
-          receiptNo: documentData.paymentNo,
-          customerName: documentData.partyName,
-          amount: documentData.amount
-        }
-      case 'payment-voucher':
-        return {
-          voucherNo: documentData.paymentNo,
-          supplierName: documentData.partyName,
-          amount: documentData.amount
-        }
-      default:
-        return {}
+  static _documentMeta(data, type) {
+    const map = {
+      'invoice':         { invoiceNo: data.invoiceNo,  customerName: data.partyName,  amount: data.totalAmount },
+      'purchase-bill':   { billNo: data.billNo,        supplierName: data.partyName,  amount: data.totalAmount },
+      'payment-receipt': { receiptNo: data.paymentNo,  customerName: data.partyName,  amount: data.amount },
+      'payment-voucher': { voucherNo: data.paymentNo,  supplierName: data.partyName,  amount: data.amount },
     }
+    return map[type] || {}
   }
 
-  /**
-   * Upload existing PDF blob and send via WhatsApp
-   * @param pdfBlob - PDF blob
-   * @param fileName - File name
-   * @param whatsappData - WhatsApp send data
-   * @returns Promise<WhatsAppResult>
-   */
   static async uploadAndSendExistingPDF(pdfBlob, fileName, whatsappData) {
     try {
-      const result = await UploadService.uploadAndSendPDF(pdfBlob, fileName, whatsappData)
-      return result
+      return await UploadService.uploadAndSendPDF(pdfBlob, fileName, whatsappData)
     } catch (error) {
-      console.error('Error in uploadAndSendExistingPDF:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to upload and send existing PDF'
-      }
+      return { success: false, error: error?.message || 'Failed to upload and send PDF' }
     }
   }
 
-  /**
-   * Check upload service status
-   * @returns Promise<UploadStatus>
-   */
   static async getUploadServiceStatus() {
-    try {
-      const status = await UploadService.getUploadStatus()
-      return status
-    } catch (error) {
-      console.error('Error checking upload service status:', error)
-      return {
-        success: false,
-        message: error.message || 'Failed to check upload service status'
-      }
-    }
+    try { return await UploadService.getUploadStatus() }
+    catch (error) { return { success: false, message: error?.message || 'Failed to check status' } }
   }
 
-  /**
-   * Test WhatsApp connection
-   * @returns Promise<TestResult>
-   */
   static async testWhatsAppConnection() {
-    try {
-      const result = await UploadService.testWhatsAppConnection()
-      return result
-    } catch (error) {
-      console.error('Error testing WhatsApp connection:', error)
-      return {
-        success: false,
-        error: error.message || 'Failed to test WhatsApp connection'
-      }
-    }
+    try { return await UploadService.testWhatsAppConnection() }
+    catch (error) { return { success: false, error: error?.message || 'Failed to test connection' } }
   }
 }
 
