@@ -1,8 +1,7 @@
 import axios from 'axios'
 
 // Upload Service for PDF upload and WhatsApp integration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-app-v43g.onrender.com'
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { API_BASE_URL } from './config'
 
 export interface UploadResult {
   success: boolean

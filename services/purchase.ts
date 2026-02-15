@@ -66,9 +66,7 @@ export interface ApiError {
   details?: string[]
 }
 
-// API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-app-v43g.onrender.com/api'
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+import { API_URL as API_BASE_URL } from './config'
 
 
 // Helper function to handle API responses

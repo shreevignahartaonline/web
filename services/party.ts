@@ -58,9 +58,7 @@ export interface ApiResponse<T = any> {
   details?: any[]
 }
 
-// Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-app-v43g.onrender.com'
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { API_BASE_URL } from './config'
 
 
 // Party Service Class
